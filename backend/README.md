@@ -28,11 +28,16 @@ Estructura base de un proyecto en capas (routers, services, repositories, models
 python -m venv venv
 source venv/bin/activate          # Linux/Mac
 # venv\Scripts\activate            # Windows
+# Aca funciono: venv\Scripts\activate.bat
+# Si no funciona hacer lo siguiente:
+# 1) Abrir powershell y ejecutar: Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+# 2) En la terminal del VSCode ejecutar: .\venv\Scripts\Activate.ps1
+# 3) Deberian ver un (venv) a la izquierda en la terminal
 
 pip install -r requirements.txt
 cp .env.example .env               # editá con tus credenciales
 
-uvicorn src.main:app --reload
+uvicorn src.app:app --reload
 ```
 
 Abrir http://localhost:8000/docs para ver Swagger.
