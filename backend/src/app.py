@@ -17,3 +17,5 @@ app.include_router(auth_router.router, prefix="/api")
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
