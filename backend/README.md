@@ -25,6 +25,7 @@ Estructura base de un proyecto en capas (routers, services, repositories, models
 ## Setup
 
 ```bash
+cd Backend
 python -m venv venv
 source venv/bin/activate          # Linux/Mac
 # venv\Scripts\activate            # Windows
@@ -35,8 +36,6 @@ source venv/bin/activate          # Linux/Mac
 # 3) Deberian ver un (venv) a la izquierda en la terminal
 
 pip install -r requirements.txt
-cp .env.example .env               # editá con tus credenciales
-
 uvicorn src.app:app --reload
 ```
 

@@ -5,7 +5,7 @@ from src.db.connection import Base
 
 
 class Category(Base):
-    __tablename__ = "category"
+    __tablename__ = "categorias"
 
     id = Column(Integer, primary_key=True)
     nombre = Column(String, unique=True, nullable=False)

@@ -6,11 +6,13 @@ from src.config.env import settings
 engine = create_engine(settings.DATABASE_URL)
 SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 Base = declarative_base()
+Base.metadata.create_all(bind=engine)
 
 
 def get_db():
     """Dependency de FastAPI: abre una sesión por request y la cierra al final."""
     db = SessionLocal()
+    print(f"Connected to: {db}")
     try:
         yield db
     finally:
