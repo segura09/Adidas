@@ -5,7 +5,7 @@ from src.db.connection import Base
 
 
 
-class Producto(Base):
+class Product(Base):
     __tablename__ = "productos"
 
     id = Column(Integer, primary_key=True)

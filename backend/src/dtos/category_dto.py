@@ -6,6 +6,8 @@ class CreateCategoryDTO(BaseModel):
     nombre: str
     descripcion: str
 
+class GetCategoryDTO(BaseModel):
+    id: int
 
 class CategoryResponseDTO(BaseModel):
     id: int
