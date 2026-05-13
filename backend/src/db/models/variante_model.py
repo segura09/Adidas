@@ -13,5 +13,4 @@ class Variante(Base):
     stock = Column(Integer, default=0)
     sku = Column(String(100), unique=True, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
-
     producto = relationship("Producto", back_populates="variantes")

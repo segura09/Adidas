@@ -12,6 +12,5 @@ class Compra(Base):
     estado = Column(String(50), default="pendiente_pago")
     cupon_id = Column(Integer, ForeignKey("cupones.id"), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
-
     cliente = relationship("Cliente", back_populates="compras")
     items = relationship("CompraItem", back_populates="compra")

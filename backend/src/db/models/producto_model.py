@@ -15,6 +15,5 @@ class Producto(Base):
     categoria_id = Column(Integer, ForeignKey("categorias.id"), nullable=False)
     activo = Column(Boolean, default=True)
     created_at = Column(DateTime, server_default=func.now())
-
     categoria = relationship("Category", back_populates="productos")
     variantes = relationship("Variante", back_populates="producto", cascade="all, delete-orphan")
