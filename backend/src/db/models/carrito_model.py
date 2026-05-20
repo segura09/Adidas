@@ -1,15 +1,29 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, DateTime, ForeignKey, Integer
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
 from src.db.connection import Base
 
 
-class User(Base):
-    __tablename__ = "users"
+class Carrito(Base):
+    __tablename__ = "carritos"
 
-    id = Column(Integer, primary_key=True)
-    email = Column(String, unique=True, nullable=False)
-    password_hash = Column(String, nullable=False)
-    age = Column(Integer, nullable=False)
-    is_admin = Column(Boolean, default=False)
-    created_at = Column(DateTime, server_default=func.now())
+    cliente_id = Column(Integer, ForeignKey("clientes.id", ondelete="CASCADE"), primary_key=True)
+    fecha_creacion = Column(DateTime, server_default=func.now())
+
+    items = relationship("CarritoItem", back_populates="carrito", cascade="all, delete-orphan")
+
+
+class CarritoItem(Base):
+    __tablename__ = "carrito_items"
+
+    cliente_id = Column(
+        Integer,
+        ForeignKey("carritos.cliente_id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    variante_id = Column(Integer, ForeignKey("variantes.id"), primary_key=True)
+    cantidad = Column(Integer, nullable=False)
+
+    carrito = relationship("Carrito", back_populates="items")
+    variante = relationship("Variante")

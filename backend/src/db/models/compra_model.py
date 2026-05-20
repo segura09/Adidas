@@ -13,4 +13,5 @@ class Compra(Base):
     cupon_id = Column(Integer, ForeignKey("cupones.id"), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     cliente = relationship("Cliente", back_populates="compras")
+    cupon = relationship("Cupon")
     items = relationship("CompraItem", back_populates="compra")

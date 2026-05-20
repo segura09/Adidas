@@ -5,7 +5,7 @@ from src.db.connection import Base
 
 
 
-class Product(Base):
+class Producto(Base):
     __tablename__ = "productos"
 
     id = Column(Integer, primary_key=True)
@@ -17,3 +17,7 @@ class Product(Base):
     created_at = Column(DateTime, server_default=func.now())
     categoria = relationship("Category", back_populates="productos")
     variantes = relationship("Variante", back_populates="producto", cascade="all, delete-orphan")
+    resenas = relationship("Resena", back_populates="producto")
+
+
+Product = Producto

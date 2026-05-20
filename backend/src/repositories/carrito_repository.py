@@ -1,88 +1,118 @@
+from sqlalchemy.orm import Session
+
+from src.db.models.carrito_model import Carrito, CarritoItem
+from src.db.models.compra_items_model import CompraItem
+from src.db.models.compra_model import Compra
+from src.db.models.product_model import Producto
+from src.db.models.variante_model import Variante
+
+
 class CarritoRepository:
-    def __init__(self, db):
+    def __init__(self, db: Session):
         self.db = db
 
     def ensure_cart_exists(self, cliente_id: int) -> None:
-        """Verifica si el cliente tiene un carrito; si no, lo inicializa."""
-        query_find = "SELECT cliente_id FROM carritos WHERE cliente_id = %s"
-        cart = self.db.fetch_one(query_find, (cliente_id,))
-        
+        cart = self.db.query(Carrito).filter(Carrito.cliente_id == cliente_id).first()
         if not cart:
-            query_create = "INSERT INTO carritos (cliente_id) VALUES (%s)"
-            self.db.fetch_one(query_create, (cliente_id,))
+            self.db.add(Carrito(cliente_id=cliente_id))
+            self.db.commit()
 
     def get_variant_stock_and_price(self, variante_id: int):
-        """Retorna el stock de la variante y el precio base del producto asociado."""
-        query = """
-            SELECT v.stock, p.precio_base 
-            FROM variantes v
-            INNER JOIN productos p ON v.producto_id = p.id
-            WHERE v.id = %s
-        """
-        return self.db.fetch_one(query, (variante_id,))
+        row = (
+            self.db.query(Variante.stock, Producto.precio_base)
+            .join(Producto, Variante.producto_id == Producto.id)
+            .filter(Variante.id == variante_id)
+            .first()
+        )
+        if not row:
+            return None
+
+        return {"stock": row.stock, "precio_base": row.precio_base}
 
     def add_or_update_item(self, cliente_id: int, variante_id: int, cantidad: int):
-        """Inserta el ítem en el carrito o incrementa de forma acumulativa si ya existe."""
-        query = """
-            INSERT INTO carrito_items (cliente_id, variante_id, cantidad)
-            VALUES (%s, %s, %s)
-            ON CONFLICT (cliente_id, variante_id)
-            DO UPDATE SET cantidad = carrito_items.cantidad + EXCLUDED.cantidad
-            RETURNING *
-        """
-        return self.db.fetch_one(query, (cliente_id, variante_id, cantidad))
+        item = (
+            self.db.query(CarritoItem)
+            .filter(
+                CarritoItem.cliente_id == cliente_id,
+                CarritoItem.variante_id == variante_id,
+            )
+            .first()
+        )
 
-    def get_cart_details(self, cliente_id: int) -> list:
-        """Recupera los ítems del carrito con todo su contexto (Producto, Talle, Color, Precio)."""
-        query = """
-            SELECT 
-                ci.variante_id,
-                p.nombre AS producto_nombre,
-                v.talle,
-                p.precio_base,
-                ci.cantidad,
-                v.color
-            FROM carrito_items ci
-            INNER JOIN variantes v ON ci.variante_id = v.id
-            INNER JOIN productos p ON v.producto_id = p.id
-            WHERE ci.cliente_id = %s
-        """
-        return self.db.fetch_all(query, (cliente_id,))
+        if item:
+            item.cantidad += cantidad
+        else:
+            item = CarritoItem(
+                cliente_id=cliente_id,
+                variante_id=variante_id,
+                cantidad=cantidad,
+            )
+            self.db.add(item)
+
+        self.db.commit()
+        self.db.refresh(item)
+        return item
+
+    def get_cart_details(self, cliente_id: int) -> list[dict]:
+        rows = (
+            self.db.query(
+                CarritoItem.variante_id,
+                Producto.nombre.label("producto_nombre"),
+                Variante.talle,
+                Producto.precio_base,
+                CarritoItem.cantidad,
+                Variante.color,
+            )
+            .join(Variante, CarritoItem.variante_id == Variante.id)
+            .join(Producto, Variante.producto_id == Producto.id)
+            .filter(CarritoItem.cliente_id == cliente_id)
+            .all()
+        )
+
+        return [
+            {
+                "variante_id": row.variante_id,
+                "producto_nombre": row.producto_nombre,
+                "talle": row.talle,
+                "precio_base": row.precio_base,
+                "cantidad": row.cantidad,
+                "color": row.color,
+            }
+            for row in rows
+        ]
 
     def clear_cart(self, cliente_id: int) -> None:
-        """Elimina todos los ítems asociados al carrito del cliente."""
-        query = "DELETE FROM carrito_items WHERE cliente_id = %s"
-        self.db.fetch_one(query, (cliente_id,))
+        self.db.query(CarritoItem).filter(CarritoItem.cliente_id == cliente_id).delete()
+        self.db.commit()
 
     def create_order_from_cart(self, cliente_id: int, total_carrito: float) -> int:
-        """Mueve transaccionalmente el carrito a una compra y descuenta stock."""
-        # 1. Crear el registro maestro de la Compra (estado por defecto: 'pendiente_pago')
-        query_compra = """
-            INSERT INTO compras (cliente_id, total, estado)
-            VALUES (%s, %s, 'pendiente_pago')
-            RETURNING id
-        """
-        compra = self.db.fetch_one(query_compra, (cliente_id, total_carrito))
-        compra_id = compra["id"] if isinstance(compra, dict) else compra[0]
+        compra = Compra(
+            cliente_id=cliente_id,
+            total=total_carrito,
+            estado="pendiente_pago",
+        )
+        self.db.add(compra)
+        self.db.flush()
 
-        # 2. Trasladar los detalles del carrito directo a compra_items
-        query_move_items = """
-            INSERT INTO compra_items (compra_id, variante_id, cantidad, precio_unitario)
-            SELECT %s, ci.variante_id, ci.cantidad, p.precio_base
-            FROM carrito_items ci
-            INNER JOIN variantes v ON ci.variante_id = v.id
-            INNER JOIN productos p ON v.producto_id = p.id
-            WHERE ci.cliente_id = %s
-        """
-        self.db.fetch_one(query_move_items, (compra_id, cliente_id))
+        items = (
+            self.db.query(CarritoItem, Variante, Producto)
+            .join(Variante, CarritoItem.variante_id == Variante.id)
+            .join(Producto, Variante.producto_id == Producto.id)
+            .filter(CarritoItem.cliente_id == cliente_id)
+            .all()
+        )
 
-        # 3. Descontar las unidades compradas del stock de variantes
-        query_update_stock = """
-            UPDATE variantes v
-            SET stock = v.stock - ci.cantidad
-            FROM carrito_items ci
-            WHERE v.id = ci.variante_id AND ci.cliente_id = %s
-        """
-        self.db.fetch_one(query_update_stock, (cliente_id,))
+        for cart_item, variante, producto in items:
+            self.db.add(
+                CompraItem(
+                    compra_id=compra.id,
+                    variante_id=cart_item.variante_id,
+                    cantidad=cart_item.cantidad,
+                    precio_unitario=producto.precio_base,
+                )
+            )
+            variante.stock -= cart_item.cantidad
 
-        return compra_id
+        self.db.commit()
+        self.db.refresh(compra)
+        return compra.id

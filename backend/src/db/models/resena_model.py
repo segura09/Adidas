@@ -11,7 +11,7 @@ class Resena(Base):
     id = Column(Integer, primary_key=True, index=True)
     
     
-    usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=False) 
+    cliente_id = Column(Integer, ForeignKey("clientes.id"), nullable=False) 
     
     producto_id = Column(Integer, ForeignKey("productos.id"), nullable=False)
     calificacion = Column(Integer, nullable=False)  
@@ -19,8 +19,8 @@ class Resena(Base):
     fecha_creacion = Column(DateTime, default=datetime.utcnow)
 
     producto = relationship("Producto", back_populates="resenas")
-    # cliente = relationship("Usuario")
+    cliente = relationship("Cliente")
 
     __table_args__ = (
-        UniqueConstraint("usuario_id", "producto_id", name="uq_usuario_producto_resena"),
+        UniqueConstraint("cliente_id", "producto_id", name="uq_cliente_producto_resena"),
     )

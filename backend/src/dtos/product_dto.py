@@ -1,34 +1,31 @@
-from typing import Optional
+from datetime import datetime
 
-class CreateProductDTO:
+from pydantic import BaseModel, Field
+
+
+class CreateProductDTO(BaseModel):
     nombre: str
-    descripcion: str
+    descripcion: str | None = None
+    precio_base: float = Field(gt=0)
+    categoria_id: int
+    activo: bool = True
+
+
+class UpdateProductDTO(BaseModel):
+    nombre: str | None = None
+    descripcion: str | None = None
+    precio_base: float | None = Field(default=None, gt=0)
+    categoria_id: int | None = None
+    activo: bool | None = None
+
+
+class ProductResponseDTO(BaseModel):
+    id: int
+    nombre: str
+    descripcion: str | None = None
     precio_base: float
     categoria_id: int
     activo: bool
+    created_at: datetime | None = None
 
-class UpdateProductDTO:
-    nombre: Optional[str] = None
-    descripcion: Optional[str] = None
-    precio_base: Optional[float] = None
-    categoria_id: Optional[int] = None
-    activo: Optional[bool] = None
-
-class GetProductDTO:
-    id: int
-    nombre: str
-    descripcion: str | None
-    precio_base: float
-    categoria_id: int
-    activo: bool
-
-class DeleteProductDTO:
-    id: int
-
-class ProductResponseDTO:
-    id: int
-    nombre: str
-    descripcion: str
-    precio_base: float
-    categoria_id: int
-    activo: bool
+    model_config = {"from_attributes": True}

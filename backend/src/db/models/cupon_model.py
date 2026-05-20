@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Numeric, DateTime, Date
 from sqlalchemy.sql import func
+from src.db.connection import Base
 
 class Cupon(Base):
     __tablename__ = "cupones"

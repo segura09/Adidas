@@ -4,6 +4,7 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
+from src.db.models.compra_model import Compra
 from src.repositories.compra_repository import CompraRepository
 
 
@@ -96,7 +97,7 @@ class CompraService:
                 usuario_id=data.usuario_id,
                 total=total,
                 cupon_id=cupon_id,
-                estado="pendiente"  # HU7: Aseguramos que inicie en pendiente
+                estado="pendiente_pago"
             )
 
             purchase_items = []
@@ -146,14 +147,13 @@ class CompraService:
         """Pasa la compra de 'pendiente' a 'pagada' (HU7)."""
         try:
             # Reutilizamos el repositorio para buscar la compra (puedes agregar este método simple en tu repo)
-            compra = self.db.query(self.repository.create_purchase.__self__.db.query(Compra).model).filter_by(id=compra_id).first() if hasattr(self.repository, 'get_by_id') == False else self.repository.get_by_id(compra_id)
+            compra = self.repository.get_by_id(compra_id)
             
             # Si prefieres una llamada directa y limpia para evitar problemas de búsqueda:
-            compra = self.db.query(Compra).filter(Compra.id == compra_id).first()
             if not compra:
                 raise HTTPException(status_code=404, detail="Compra no encontrada")
             
-            if compra.estado != "pendiente":
+            if compra.estado not in ["pendiente", "pendiente_pago"]:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST, 
                     detail=f"No se puede pagar una compra en estado '{compra.estado}'"
@@ -180,7 +180,7 @@ class CompraService:
             if not compra:
                 raise HTTPException(status_code=404, detail="Compra no encontrada")
             
-            if compra.estado not in ["pendiente", "pagada"]:
+            if compra.estado not in ["pendiente", "pendiente_pago", "pagada"]:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST, 
                     detail=f"No se puede cancelar una compra en estado '{compra.estado}'"
@@ -233,21 +233,21 @@ class CompraService:
 
     def mark_purchase_as_shipped(self, compra_id: int):
         """Pasa la compra de 'pagada' a 'enviada'."""
-        compra = self.compra_repo.get_by_id(compra_id)
+        compra = self.repository.get_by_id(compra_id)
         if not compra or compra.estado != "pagada":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, 
                 detail="Solo se pueden enviar compras que ya estén pagadas"
             )
-        return self.compra_repo.update_estado(compra_id, "enviada")
+        return self.repository.update_estado(compra_id, "enviada")
 
 
     def mark_purchase_as_delivered(self, compra_id: int):
         """Pasa la compra de 'enviada' a 'entregada'."""
-        compra = self.compra_repo.get_by_id(compra_id)
+        compra = self.repository.get_by_id(compra_id)
         if not compra or compra.estado != "enviada":
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, 
                 detail="Solo se pueden marcar como entregadas las compras enviadas"
             )
-        return self.compra_repo.update_estado(compra_id, "entregada")
+        return self.repository.update_estado(compra_id, "entregada")

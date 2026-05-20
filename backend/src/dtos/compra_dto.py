@@ -13,14 +13,12 @@ class CreatePurchaseDTO(BaseModel):
 
 
 class ItemCompraResponseDTO(BaseModel):
-    id: int
-    producto_id: int
-    nombre_producto: str
+    variante_id: int
     cantidad: int
     precio_unitario: float
+    subtotal: float
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 class CompraConItemsResponseDTO(BaseModel):
     id: int
@@ -31,5 +29,4 @@ class CompraConItemsResponseDTO(BaseModel):
     cupon_codigo: Optional[str] = None
     items: List[ItemCompraResponseDTO] 
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
