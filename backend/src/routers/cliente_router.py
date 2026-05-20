@@ -10,10 +10,10 @@ from src.services.cliente_service import ClienteService
 router = APIRouter(prefix="/clientes", tags=["Clientes"])
 
 
-@router.get("/{cliente_id}/compras")
+@router.get("/{cliente_id}/compras", response_model=list[CompraConItemsResponseDTO])
 def get_customer_purchases(
     cliente_id: int, 
-    estado: str | None = Query(None, description="Filtrar por estado de la compra"),
+    estado: str | None = Query(None),
     db: Session = Depends(get_db)
 ):
     return ClienteService(db).get_customer_purchases(cliente_id=cliente_id, estado=estado)
