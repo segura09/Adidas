@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 
 from src.middlewares.error_middleware import app_error_handler
-from src.routers import auth_router, user_router, category_router
+# IMPORTANTE: Sumamos resena_router a tus importaciones
+from src.routers import auth_router, user_router, category_router, resena_router
 from src.utils.errors import AppError
 
 app = FastAPI(title="Initial Structure API")
@@ -14,9 +15,10 @@ app.include_router(category_router.router, prefix="/api")
 # TODO: registrar product_router cuando se implemente
 # app.include_router(product_router.router, prefix="/api")
 
+# HU12 — Registrar el router de reseñas bajo el mismo prefijo /api
+app.include_router(resena_router.router, prefix="/api")
+
 
 @app.get("/health")
 def health():
     return {"status": "ok"}
-
-
