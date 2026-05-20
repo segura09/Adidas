@@ -11,10 +11,14 @@ class ClienteService:
         cliente = self.repo.find_by_id(cliente_id)
         if not cliente:
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
+                status_code=404,
                 detail=f"Usuario con ID {cliente_id} no encontrado."
             )
-
+            
         compras_db = self.repo.get_purchases(usuario_id=cliente_id, estado=estado)
         
+       
+        if compras_db is None:
+            return []
+            
         return [compra_to_response(compra) for compra in compras_db]

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 from typing import List
 
-from src.db.session import get_db  # Dependencia de tu sesión de base de datos
+from src.db.connection import get_db  # ✅ El que venimos usando
 from src.schemas.resena_schema import ResenaCreate, ResenaResponse, ResenaSummaryResponse
 from src.services.resena_service import ResenaService
 # from src.auth.dependencies import get_current_user  # Dependencia para el JWT
