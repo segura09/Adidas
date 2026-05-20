@@ -139,7 +139,85 @@ class CompraService:
                 detail=f"Error interno del servidor: {str(e)}"
             )
 
-    # =======================================================
-    # AGREGÁ ACÁ LAS FUNCIONES DE LA HU7 QUE VIMOS ANTES...
-    # (mark_purchase_as_paid, mark_purchase_as_cancelled, etc.)
-    # =======================================================
+# backend/src/services/compra_service.py
+
+from fastapi import HTTPException, status
+# Importar tus repositorios de compra y variante
+# from backend.src.repositories.compra_repository import CompraRepository
+# from backend.src.repositories.variante_repository import VarianteRepository
+
+class CompraService:
+    def __init__(self, compra_repo: CompraRepository, variante_repo: VarianteRepository):
+        self.compra_repo = compra_repo
+        self.variante_repo = variante_repo
+
+    def mark_purchase_as_paid(self, compra_id: int):
+        """Pasa la compra de 'pendiente' a 'pagada' y descuenta stock."""
+        compra = self.compra_repo.get_by_id(compra_id)
+        if not compra:
+            raise HTTPException(status_code=404, detail="Compra no encontrada")
+        
+        # Validación de transición estricta
+        if compra.estado != "pendiente":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail=f"No se puede pagar una compra en estado '{compra.estado}'"
+            )
+        
+        # Lógica de descuento de stock (Se ejecuta dentro de una transacción)
+        # Se asume que compra.items contiene los productos y sus cantidades
+        for item in compra.items:
+            variante = self.variante_repo.get_by_id(item.variante_id)
+            if variante.stock < item.cantidad:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Stock insuficiente para la variante {variante.sku}"
+                )
+            self.variante_repo.update_stock(item.variante_id, variante.stock - item.cantidad)
+        
+        # Cambiar estado
+        return self.compra_repo.update_estado(compra_id, "pagada")
+
+
+    def mark_purchase_as_cancelled(self, compra_id: int):
+        """Cancela la compra. Si ya estaba pagada, restituye el stock."""
+        compra = self.compra_repo.get_by_id(compra_id)
+        if not compra:
+            raise HTTPException(status_code=404, detail="Compra no encontrada")
+        
+        # Solo se puede cancelar si está pendiente o pagada
+        if compra.estado not in ["pendiente", "pagada"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail=f"No se puede cancelar una compra en estado '{compra.estado}'"
+            )
+        
+        # Si ya estaba pagada, devolvemos el stock al inventario
+        if compra.estado == "pagada":
+            for item in compra.items:
+                variante = self.variante_repo.get_by_id(item.variante_id)
+                self.variante_repo.update_stock(item.variante_id, variante.stock + item.cantidad)
+        
+        return self.compra_repo.update_estado(compra_id, "cancelada")
+
+
+    def mark_purchase_as_shipped(self, compra_id: int):
+        """Pasa la compra de 'pagada' a 'enviada'."""
+        compra = self.compra_repo.get_by_id(compra_id)
+        if not compra or compra.estado != "pagada":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Solo se pueden enviar compras que ya estén pagadas"
+            )
+        return self.compra_repo.update_estado(compra_id, "enviada")
+
+
+    def mark_purchase_as_delivered(self, compra_id: int):
+        """Pasa la compra de 'enviada' a 'entregada'."""
+        compra = self.compra_repo.get_by_id(compra_id)
+        if not compra or compra.estado != "enviada":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, 
+                detail="Solo se pueden marcar como entregadas las compras enviadas"
+            )
+        return self.compra_repo.update_estado(compra_id, "entregada")
