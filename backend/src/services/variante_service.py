@@ -30,3 +30,13 @@ class VarianteService:
             )
 
         return self.repository.update_stock(variante_id, stock)
+
+    # =========================================================================
+    # AGREGADO: HU10 — Stock bajo
+    # =========================================================================
+    def get_low_stock_variants(self, umbral: int = 5):
+        """
+        Llama al repositorio para obtener las variantes con stock crítico.
+        Aquí podrías añadir más lógica de negocio a futuro si fuera necesario.
+        """
+        return self.repository.get_low_stock_variants(umbral=umbral)
