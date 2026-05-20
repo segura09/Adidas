@@ -2,6 +2,7 @@ from datetime import datetime
 from decimal import Decimal
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from src.repositories.compra_repository import CompraRepository
 
@@ -45,7 +46,7 @@ class CompraService:
         return total
 
     def apply_coupon_to_purchase(self, codigo_cupon: str):
-        """Busca el cupón, valida vigencia y disponibilidad de usos."""
+        """Busca el cupón, valida vigencia y disponibilidad de usos (HU6)."""
         cupon = self.repository.get_coupon_by_code(codigo_cupon)
         
         if not cupon:
@@ -54,7 +55,6 @@ class CompraService:
                 detail=f"El cupón '{codigo_cupon}' no existe."
             )
             
-        # FIX: Evitamos errores si uno es date y el otro datetime
         fecha_actual = datetime.now().date() if type(cupon.fecha_vencimiento) == type(datetime.now().date()) else datetime.now()
         if cupon.fecha_vencimiento < fecha_actual:
             raise HTTPException(
@@ -71,16 +71,17 @@ class CompraService:
         return cupon
 
     def recalculate_total_with_discount(self, total: float, porcentaje_descuento: int) -> float:
-        """Aplica el porcentaje de descuento al total original."""
+        """Aplica el porcentaje de descuento al total original (HU6)."""
         descuento = float(total) * (porcentaje_descuento / 100.0)
         total_final = float(total) - descuento
         return max(total_final, 0.0)
 
     def increment_coupon_use_on_confirm(self, cupon):
-        """Suma un uso al cupón dentro de la transacción."""
+        """Suma un uso al cupón dentro de la transacción (HU6)."""
         self.repository.increment_coupon_use(cupon)
 
     def create_purchase(self, data):
+        """Flujo principal de creación de compra unificado (HU5 + HU6)."""
         try:
             variants = self.validate_stock_for_items(data.items)
             total = self.calculate_total(variants)
@@ -95,7 +96,7 @@ class CompraService:
                 usuario_id=data.usuario_id,
                 total=total,
                 cupon_id=cupon_id,
-                estado="pendiente" # HU7: Aseguramos que inicie en pendiente
+                estado="pendiente"  # HU7: Aseguramos que inicie en pendiente
             )
 
             purchase_items = []
@@ -113,6 +114,7 @@ class CompraService:
                     "subtotal": subtotal
                 })
 
+                # HU5/HU7: Se pre-reserva el stock preventivamente al crear la orden pendiente
                 self.repository.reserve_stock(variant, cantidad)
 
             self.repository.save_purchase_items(
@@ -128,7 +130,6 @@ class CompraService:
 
             return compra
 
-        # FIX: Evitamos que las excepciones de FastAPI se degraden a Error 500
         except HTTPException as http_ex:
             self.db.rollback()
             raise http_ex
@@ -139,67 +140,96 @@ class CompraService:
                 detail=f"Error interno del servidor: {str(e)}"
             )
 
-# backend/src/services/compra_service.py
-
-from fastapi import HTTPException, status
-# Importar tus repositorios de compra y variante
-# from backend.src.repositories.compra_repository import CompraRepository
-# from backend.src.repositories.variante_repository import VarianteRepository
-
-class CompraService:
-    def __init__(self, compra_repo: CompraRepository, variante_repo: VarianteRepository):
-        self.compra_repo = compra_repo
-        self.variante_repo = variante_repo
+    # --- NUEVAS FUNCIONES HU7 (GESTIÓN DE ESTADOS DE COMPRA) ---
 
     def mark_purchase_as_paid(self, compra_id: int):
-        """Pasa la compra de 'pendiente' a 'pagada' y descuenta stock."""
-        compra = self.compra_repo.get_by_id(compra_id)
-        if not compra:
-            raise HTTPException(status_code=404, detail="Compra no encontrada")
-        
-        # Validación de transición estricta
-        if compra.estado != "pendiente":
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
-                detail=f"No se puede pagar una compra en estado '{compra.estado}'"
-            )
-        
-        # Lógica de descuento de stock (Se ejecuta dentro de una transacción)
-        # Se asume que compra.items contiene los productos y sus cantidades
-        for item in compra.items:
-            variante = self.variante_repo.get_by_id(item.variante_id)
-            if variante.stock < item.cantidad:
+        """Pasa la compra de 'pendiente' a 'pagada' (HU7)."""
+        try:
+            # Reutilizamos el repositorio para buscar la compra (puedes agregar este método simple en tu repo)
+            compra = self.db.query(self.repository.create_purchase.__self__.db.query(Compra).model).filter_by(id=compra_id).first() if hasattr(self.repository, 'get_by_id') == False else self.repository.get_by_id(compra_id)
+            
+            # Si prefieres una llamada directa y limpia para evitar problemas de búsqueda:
+            compra = self.db.query(Compra).filter(Compra.id == compra_id).first()
+            if not compra:
+                raise HTTPException(status_code=404, detail="Compra no encontrada")
+            
+            if compra.estado != "pendiente":
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Stock insuficiente para la variante {variante.sku}"
+                    status_code=status.HTTP_400_BAD_REQUEST, 
+                    detail=f"No se puede pagar una compra en estado '{compra.estado}'"
                 )
-            self.variante_repo.update_stock(item.variante_id, variante.stock - item.cantidad)
-        
-        # Cambiar estado
-        return self.compra_repo.update_estado(compra_id, "pagada")
-
+            
+            # Nota de stock: Como el stock ya fue descontado preventivamente en create_purchase (reserve_stock),
+            # al pagar simplemente confirmamos la transición de estado.
+            compra.estado = "pagada"
+            self.db.commit()
+            self.db.refresh(compra)
+            return compra
+            
+        except HTTPException as http_ex:
+            self.db.rollback()
+            raise http_ex
+        except Exception as e:
+            self.db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
 
     def mark_purchase_as_cancelled(self, compra_id: int):
-        """Cancela la compra. Si ya estaba pagada, restituye el stock."""
-        compra = self.compra_repo.get_by_id(compra_id)
-        if not compra:
-            raise HTTPException(status_code=404, detail="Compra no encontrada")
-        
-        # Solo se puede cancelar si está pendiente o pagada
-        if compra.estado not in ["pendiente", "pagada"]:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, 
-                detail=f"No se puede cancelar una compra en estado '{compra.estado}'"
-            )
-        
-        # Si ya estaba pagada, devolvemos el stock al inventario
-        if compra.estado == "pagada":
+        """Cancela la compra. Devuelve el stock reservado al inventario (HU7)."""
+        try:
+            compra = self.db.query(Compra).filter(Compra.id == compra_id).first()
+            if not compra:
+                raise HTTPException(status_code=404, detail="Compra no encontrada")
+            
+            if compra.estado not in ["pendiente", "pagada"]:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, 
+                    detail=f"No se puede cancelar una compra en estado '{compra.estado}'"
+                )
+            
+            # Como estuvo en pendiente o pagada, el stock fue retenido. Hay que restituirlo:
             for item in compra.items:
-                variante = self.variante_repo.get_by_id(item.variante_id)
-                self.variante_repo.update_stock(item.variante_id, variante.stock + item.cantidad)
-        
-        return self.compra_repo.update_estado(compra_id, "cancelada")
+                variant = self.repository.get_variant_by_id(item.variante_id)
+                if variant:
+                    variant.stock += item.cantidad  # Devolvemos las unidades al inventario
+            
+            compra.estado = "cancelada"
+            self.db.commit()
+            self.db.refresh(compra)
+            return compra
+            
+        except HTTPException as http_ex:
+            self.db.rollback()
+            raise http_ex
+        except Exception as e:
+            self.db.rollback()
+            raise HTTPException(status_code=500, detail=str(e))
 
+    # --- NUEVA FUNCIÓN HU14 (REPORTE DE FACTURACIÓN) ---
+
+    def get_billing_report(self, desde: datetime, hasta: datetime):
+        """Genera el reporte consolidado de facturación (HU14)."""
+        summary = self.repository.get_billing_summary(desde, hasta)
+        desglose_categorias = self.repository.get_billing_by_category(desde, hasta)
+        
+        total_devoluciones = 0.0
+        try:
+            from src.db.models.devolucion_model import Devolucion
+            total_devuelto = self.db.query(func.sum(Devolucion.total)).filter(
+                Devolucion.fecha >= desde,
+                Devolucion.fecha <= hasta,
+                Devolucion.estado == "reintegrada"
+            ).scalar()
+            total_devoluciones = float(total_devuelto or 0.0)
+        except ImportError:
+            pass
+
+        total_neto = max(summary["total_facturado"] - total_devoluciones, 0.0)
+
+        return {
+            "total_facturado": total_neto,
+            "cantidad_compras": summary["cantidad_compras"],
+            "desglose_por_categoria": desglose_categorias
+        }
 
     def mark_purchase_as_shipped(self, compra_id: int):
         """Pasa la compra de 'pagada' a 'enviada'."""
