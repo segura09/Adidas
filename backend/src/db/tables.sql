@@ -89,3 +89,16 @@ CREATE TABLE compra_items (
     CONSTRAINT fk_compra FOREIGN KEY (compra_id) REFERENCES compras(id) ON DELETE CASCADE,
     CONSTRAINT fk_variante_compra FOREIGN KEY (variante_id) REFERENCES variantes(id)
 );
+
+-- 10. buscar_prductos (HUB3)
+CREATE INDEX idx_producto_categoria
+ON producto(categoria_id);
+
+CREATE INDEX idx_variante_talle
+ON variante(talle);
+
+CREATE INDEX idx_variante_color
+ON variante(color);
+
+CREATE INDEX idx_variante_stock
+ON variante(stock);
