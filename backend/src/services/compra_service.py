@@ -1,6 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from src.repositories.compra_repository import CompraRepository
@@ -39,14 +39,10 @@ class CompraService:
     def calculate_total(self, variants):
         total = 0
         for item in variants:
-            # Nota: Aseguramos que el precio del producto venga desde su relación
-            # según tu modelo anterior: variant.producto.precio_base
             precio = getattr(item["variant"], "precio", None) or item["variant"].producto.precio_base
             subtotal = precio * item["cantidad"]
             total += subtotal
         return total
-
-
 
     def apply_coupon_to_purchase(self, codigo_cupon: str):
         """Busca el cupón, valida vigencia y disponibilidad de usos."""
@@ -58,7 +54,9 @@ class CompraService:
                 detail=f"El cupón '{codigo_cupon}' no existe."
             )
             
-        if cupon.fecha_vencimiento < datetime.now():
+        # FIX: Evitamos errores si uno es date y el otro datetime
+        fecha_actual = datetime.now().date() if type(cupon.fecha_vencimiento) == type(datetime.now().date()) else datetime.now()
+        if cupon.fecha_vencimiento < fecha_actual:
             raise HTTPException(
                 status_code=400,
                 detail="El cupón ingresado ya ha vencido."
@@ -82,13 +80,9 @@ class CompraService:
         """Suma un uso al cupón dentro de la transacción."""
         self.repository.increment_coupon_use(cupon)
 
-
-
     def create_purchase(self, data):
         try:
-    
             variants = self.validate_stock_for_items(data.items)
-
             total = self.calculate_total(variants)
             
             cupon_id = None
@@ -97,11 +91,11 @@ class CompraService:
                 total = self.recalculate_total_with_discount(total, cupon.porcentaje_descuento)
                 cupon_id = cupon.id
 
-
             compra = self.repository.create_purchase(
                 usuario_id=data.usuario_id,
                 total=total,
-                cupon_id=cupon_id 
+                cupon_id=cupon_id,
+                estado="pendiente" # HU7: Aseguramos que inicie en pendiente
             )
 
             purchase_items = []
@@ -134,6 +128,18 @@ class CompraService:
 
             return compra
 
+        # FIX: Evitamos que las excepciones de FastAPI se degraden a Error 500
+        except HTTPException as http_ex:
+            self.db.rollback()
+            raise http_ex
         except Exception as e:
             self.db.rollback()
-            raise e
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Error interno del servidor: {str(e)}"
+            )
+
+    # =======================================================
+    # AGREGÁ ACÁ LAS FUNCIONES DE LA HU7 QUE VIMOS ANTES...
+    # (mark_purchase_as_paid, mark_purchase_as_cancelled, etc.)
+    # =======================================================
