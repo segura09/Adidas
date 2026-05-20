@@ -26,4 +26,4 @@ class GetProductSchema(BaseModel):
         from_attributes = True
 
 class DeleteProductSchema(BaseModel):
-    id: int
+    id: int 
