@@ -85,11 +85,18 @@ class CarritoRepository:
         self.db.query(CarritoItem).filter(CarritoItem.cliente_id == cliente_id).delete()
         self.db.commit()
 
+    def remove_item(self, cliente_id: int, variante_id: int) -> None:
+        self.db.query(CarritoItem).filter(
+            CarritoItem.cliente_id == cliente_id,
+            CarritoItem.variante_id == variante_id,
+        ).delete()
+        self.db.commit()
+
     def create_order_from_cart(self, cliente_id: int, total_carrito: float) -> int:
         compra = Compra(
             cliente_id=cliente_id,
             total=total_carrito,
-            estado="pendiente_pago",
+            estado="pendiente",
         )
         self.db.add(compra)
         self.db.flush()

@@ -77,7 +77,7 @@ class ProductRepository:
         if not product:
             return False
 
-        self.db.delete(product)
+        product.activo = False
         self.db.commit()
         return True
 
@@ -104,11 +104,11 @@ class ProductRepository:
 
         return [
             {
-                "id": row.id,
+                "producto_id": row.id,
                 "nombre": row.nombre,
                 "precio": float(row.precio_base or 0),
                 "unidades_vendidas": int(row.unidades_vendidas or 0),
-                "facturacion_acumulada": float(row.facturacion_acumulada or 0),
+                "facturacion": float(row.facturacion_acumulada or 0),
             }
             for row in rows
         ]

@@ -8,6 +8,15 @@ from src.schemas.cliente_schema import CreateClienteSchema, UpdateClienteSchema
 from src.services.cliente_service import ClienteService
 
 router = APIRouter(prefix="/clientes", tags=["Clientes"])
+CLIENTE_MOCK_ID = 1
+
+
+@router.get("/me/compras", response_model=list[CompraConItemsResponseDTO])
+def get_my_purchases(
+    estado: str | None = Query(None),
+    db: Session = Depends(get_db)
+):
+    return ClienteService(db).get_customer_purchases(cliente_id=CLIENTE_MOCK_ID, estado=estado)
 
 
 @router.get("/{cliente_id}/compras", response_model=list[CompraConItemsResponseDTO])

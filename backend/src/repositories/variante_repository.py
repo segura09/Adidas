@@ -56,14 +56,12 @@ class VarianteRepository:
         return [
             {
                 "id": variante.id,
+                "producto_id": variante.producto_id,
                 "talle": variante.talle,
                 "color": variante.color,
                 "stock": variante.stock,
                 "sku": variante.sku,
-                "producto": {
-                    "id": producto.id,
-                    "nombre": producto.nombre,
-                },
+                "producto_nombre": producto.nombre,
             }
             for variante, producto in rows
         ]

@@ -23,7 +23,19 @@ def publicar_resena(
 ):
     """Crea o actualiza una reseña si el usuario ya posee el producto entregado."""
     service = ResenaService(db)
-    return service.create_or_update_review(cliente_id, data)
+    return service.to_response(service.create_or_update_review(cliente_id, data))
+
+
+@router.post("/{producto_id}/resenas", response_model=ResenaResponse, status_code=status.HTTP_201_CREATED)
+def publicar_resena_producto(
+    producto_id: int,
+    data: ResenaCreate,
+    db: Session = Depends(get_db),
+    cliente_id: int = Depends(get_current_cliente_id)
+):
+    data.producto_id = producto_id
+    service = ResenaService(db)
+    return service.to_response(service.create_or_update_review(cliente_id, data))
 
 @router.get("/{producto_id}/resenas", response_model=List[ResenaResponse])
 def listar_resenas_producto(producto_id: int, db: Session = Depends(get_db)):

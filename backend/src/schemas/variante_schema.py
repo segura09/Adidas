@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 
 
 class VarianteCreate(BaseModel):
-    producto_id: int
+    producto_id: int | None = None
     talle: str
     color: str
     stock: int = Field(ge=0)
@@ -16,6 +16,8 @@ class VarianteResponse(BaseModel):
     color: str
     stock: int
     sku: str
+
+    model_config = {"from_attributes": True}
 
 
 class StockUpdate(BaseModel):

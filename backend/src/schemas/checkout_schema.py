@@ -8,5 +8,7 @@ class CheckoutItemSchema(BaseModel):
 
 
 class CheckoutSchema(BaseModel):
-    usuario_id: int
-    items: List[CheckoutItemSchema]
+    usuario_id: int = 1
+    items: List[CheckoutItemSchema] = []
+    codigo_cupon: str | None = None
+    cupon_codigo: str | None = None

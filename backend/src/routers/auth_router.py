@@ -13,4 +13,12 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 def login(payload: LoginSchema, db: Session = Depends(get_db)):
     dto = LoginDTO(**payload.model_dump())
     token: TokenDTO = AuthService(db).login(dto)
-    return TokenSchema(**token.model_dump())
+    user = AuthService(db).repo.find_by_email(dto.email)
+    return TokenSchema(
+        **token.model_dump(),
+        user={
+            "id": user.id,
+            "email": user.email,
+            "isAdmin": user.is_admin,
+        },
+    )

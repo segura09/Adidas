@@ -1,4 +1,3 @@
-from datetime import datetime
 from pydantic import BaseModel, Field
 
 
@@ -21,6 +20,5 @@ class VarianteResponseDTO(BaseModel):
     color: str
     stock: int
     sku: str
-    created_at: datetime
 
     model_config = {"from_attributes": True}

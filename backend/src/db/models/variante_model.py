@@ -1,6 +1,5 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
 from src.db.connection import Base
 
 class Variante(Base):
@@ -12,5 +11,4 @@ class Variante(Base):
     color = Column(String(50), nullable=False)
     stock = Column(Integer, default=0)
     sku = Column(String(100), unique=True, nullable=False)
-    created_at = Column(DateTime, server_default=func.now())
     producto = relationship("Producto", back_populates="variantes")

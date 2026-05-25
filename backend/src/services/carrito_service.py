@@ -39,6 +39,11 @@ class CarritoService:
         self.repo.clear_cart(cliente_id)
         return {"detail": "Carrito vaciado correctamente"}
 
+    def remove_item(self, cliente_id: int, variante_id: int) -> CartResponseDTO:
+        self.repo.ensure_cart_exists(cliente_id)
+        self.repo.remove_item(cliente_id, variante_id)
+        return self.get_cart(cliente_id)
+
     def checkout_from_cart(self, cliente_id: int) -> dict:
         self.repo.ensure_cart_exists(cliente_id)
         items = self.repo.get_cart_details(cliente_id)

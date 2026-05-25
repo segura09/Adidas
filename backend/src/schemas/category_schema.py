@@ -1,9 +1,9 @@
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, Field
 
 
 class CreateCategorySchema(BaseModel):
     nombre: str = Field(min_length=1)
-    descripcion: str
+    descripcion: str | None = None
 
 class UpdateCategorySchema(BaseModel):
     nombre: str | None = Field(None, min_length=3, max_length=50)

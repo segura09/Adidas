@@ -1,5 +1,4 @@
-from sqlalchemy import Column, Integer, String, Numeric, DateTime, Date
-from sqlalchemy.sql import func
+from sqlalchemy import Column, Date, Integer, Numeric, String
 from src.db.connection import Base
 
 class Cupon(Base):
@@ -11,4 +10,3 @@ class Cupon(Base):
     fecha_vencimiento = Column(Date, nullable=False)
     usos_maximos = Column(Integer, default=1)
     usos_actuales = Column(Integer, default=0)
-    created_at = Column(DateTime, server_default=func.now())

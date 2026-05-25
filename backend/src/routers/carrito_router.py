@@ -7,7 +7,7 @@ from src.schemas.carrito_schema import ItemCarritoAdd
 from src.services.carrito_service import CarritoService
 
 
-router = APIRouter(prefix="/carrito", tags=["Carrito"])
+router = APIRouter(prefix="/carritos", tags=["Carrito"])
 
 
 def get_carrito_service(db=Depends(get_db)) -> CarritoService:
@@ -30,11 +30,18 @@ def add_item(
     )
 
 
+@router.get("/me", response_model=CartResponseDTO)
 @router.get("/", response_model=CartResponseDTO)
 def get_cart(service: CarritoService = Depends(get_carrito_service)):
     return service.get_cart(cliente_id=CLIENTE_MOCK_ID)
 
 
+@router.delete("/items/{variante_id}", response_model=CartResponseDTO)
+def remove_item(variante_id: int, service: CarritoService = Depends(get_carrito_service)):
+    return service.remove_item(cliente_id=CLIENTE_MOCK_ID, variante_id=variante_id)
+
+
+@router.delete("/me")
 @router.delete("/items")
 def clear_cart(service: CarritoService = Depends(get_carrito_service)):
     return service.clear_cart(cliente_id=CLIENTE_MOCK_ID)

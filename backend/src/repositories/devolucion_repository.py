@@ -1,8 +1,10 @@
 from sqlalchemy.orm import Session
-from src.db.models.devolucion_model import Devolucion
-from src.db.models.devolucion_item_model import DevolucionItem
+
 from src.db.models.compra_model import Compra
-from src.db.models.producto_model import ProductoVariante 
+from src.db.models.devolucion_items_model import DevolucionItem
+from src.db.models.devolucion_model import Devolucion
+from src.db.models.variante_model import Variante
+
 
 class DevolucionRepository:
     def __init__(self, db: Session):
@@ -14,20 +16,20 @@ class DevolucionRepository:
     def find_compra_by_id(self, compra_id: int) -> Compra | None:
         return self.db.query(Compra).filter(Compra.id == compra_id).first()
 
-    def create_devolucion(self, compra_id: int, items: list[dict]) -> Devolucion:
-        # 1. Crear cabecera de la devolución
-        devolucion = Devolucion(compra_id=compra_id, estado="pendiente")
+    def create_devolucion(self, compra_id: int, items: list[dict], motivo: str | None = None) -> Devolucion:
+        devolucion = Devolucion(compra_id=compra_id, estado="solicitada", motivo=motivo)
         self.db.add(devolucion)
-        self.db.flush() 
+        self.db.flush()
 
         for item in items:
-            nuevo_item = DevolucionItem(
-                devolucion_id=devolucion.id,
-                variante_id=item["variante_id"],
-                cantidad=item["cantidad"],
-                motivo=item.get("motivo", "")
+            self.db.add(
+                DevolucionItem(
+                    devolucion_id=devolucion.id,
+                    variante_id=item["variante_id"],
+                    cantidad=item["cantidad"],
+                    motivo=item.get("motivo", motivo),
+                )
             )
-            self.db.add(nuevo_item)
 
         self.db.commit()
         self.db.refresh(devolucion)
@@ -40,7 +42,7 @@ class DevolucionRepository:
         return devolucion
 
     def increment_variant_stock(self, variante_id: int, cantidad: int):
-        variante = self.db.query(ProductoVariante).filter(ProductoVariante.id == variante_id).first()
+        variante = self.db.query(Variante).filter(Variante.id == variante_id).first()
         if variante:
             variante.stock += cantidad
             self.db.commit()

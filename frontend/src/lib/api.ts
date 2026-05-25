@@ -4,7 +4,7 @@ import { getToken, clearAuth } from "./auth";
 
 export const API_URL =
   (typeof window !== "undefined" && (import.meta as any).env?.VITE_API_URL) ||
-  "http://localhost:8000";
+  "http://localhost:8000/api";
 
 export class ApiError extends Error {
   status: number;

@@ -9,3 +9,4 @@ class LoginSchema(BaseModel):
 class TokenSchema(BaseModel):
     access_token: str
     token_type: str = "bearer"
+    user: dict | None = None

@@ -12,6 +12,9 @@ def compra_to_response(compra):
                 "cantidad": item.cantidad,
                 "precio_unitario": float(item.precio_unitario),
                 "subtotal": float(item.precio_unitario) * item.cantidad,
+                "producto_nombre": getattr(getattr(item.variante, "producto", None), "nombre", None),
+                "talle": getattr(item.variante, "talle", None),
+                "color": getattr(item.variante, "color", None),
             }
             for item in compra.items
         ]

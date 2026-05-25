@@ -84,6 +84,8 @@ class CompraService:
     def create_purchase(self, data):
         """Flujo principal de creación de compra unificado (HU5 + HU6)."""
         try:
+            if getattr(data, "cupon_codigo", None) and not getattr(data, "codigo_cupon", None):
+                data.codigo_cupon = data.cupon_codigo
             variants = self.validate_stock_for_items(data.items)
             total = self.calculate_total(variants)
             
@@ -97,7 +99,7 @@ class CompraService:
                 usuario_id=data.usuario_id,
                 total=total,
                 cupon_id=cupon_id,
-                estado="pendiente_pago"
+                estado="pendiente"
             )
 
             purchase_items = []
@@ -212,16 +214,6 @@ class CompraService:
         desglose_categorias = self.repository.get_billing_by_category(desde, hasta)
         
         total_devoluciones = 0.0
-        try:
-            from src.db.models.devolucion_model import Devolucion
-            total_devuelto = self.db.query(func.sum(Devolucion.total)).filter(
-                Devolucion.fecha >= desde,
-                Devolucion.fecha <= hasta,
-                Devolucion.estado == "reintegrada"
-            ).scalar()
-            total_devoluciones = float(total_devuelto or 0.0)
-        except ImportError:
-            pass
 
         total_neto = max(summary["total_facturado"] - total_devoluciones, 0.0)
 

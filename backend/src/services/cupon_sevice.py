@@ -23,6 +23,9 @@ class CuponService:
         )
         return self.mapper.to_cupon_response(new_cupon)
 
+    def list_all(self) -> list[CuponResponseDTO]:
+        return [self.mapper.to_cupon_response(cupon) for cupon in self.repository.list_all()]
+
     def validate_coupon(self, codigo: str) -> CuponResponseDTO:
         cupon = self.repository.find_by_codigo(codigo)
         if not cupon:

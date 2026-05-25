@@ -12,6 +12,8 @@ class ResenaService:
 
     def create_or_update_review(self, cliente_id: int, data: ResenaCreate):
         try:
+            if data.calificacion is None:
+                data.calificacion = data.puntaje
             # 1. Regla de negocio: Validar que el producto haya sido comprado y entregado
             has_purchased = self.repository.has_delivered_purchase(cliente_id, data.producto_id)
             if not has_purchased:
@@ -28,7 +30,7 @@ class ResenaService:
                 existing_review.comentario = data.comentario
                 resena = existing_review
             else:
-                resena_dict = data.model_dump()
+                resena_dict = data.model_dump(exclude={"puntaje"})
                 resena_dict["cliente_id"] = cliente_id
                 resena = self.repository.create(resena_dict)
 
@@ -47,7 +49,22 @@ class ResenaService:
             )
 
     def list_reviews_by_product(self, producto_id: int):
-        return self.repository.list_by_producto(producto_id)
+        return [self.to_response(resena) for resena in self.repository.list_by_producto(producto_id)]
 
     def get_product_review_summary(self, producto_id: int):
-        return self.repository.get_summary_by_producto(producto_id)
+        summary = self.repository.get_summary_by_producto(producto_id)
+        return {
+            "producto_id": producto_id,
+            "promedio": summary["promedio_calificaciones"],
+            "cantidad": summary["total_resenas"],
+        }
+
+    def to_response(self, resena):
+        return {
+            "id": resena.id,
+            "cliente_id": resena.cliente_id,
+            "producto_id": resena.producto_id,
+            "puntaje": resena.calificacion,
+            "comentario": resena.comentario,
+            "fecha": resena.fecha_creacion,
+        }
