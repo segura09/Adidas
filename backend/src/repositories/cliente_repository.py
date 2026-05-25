@@ -51,4 +51,4 @@ class ClienteRepository:
         if estado:
             query = query.filter(Compra.estado == estado)
             
-        return query.order_by(Compra.created_at.desc()).all()
+        return query.order_by(Compra.fecha.desc()).all()
