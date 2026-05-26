@@ -96,6 +96,14 @@ class CompraRepository:
     def get_by_id(self, compra_id: int) -> Compra | None:
         return self.db.query(Compra).filter(Compra.id == compra_id).first()
 
+    def list_all(self, estado: str | None = None) -> list[Compra]:
+        query = self.db.query(Compra).order_by(Compra.fecha.desc(), Compra.id.desc())
+        if estado:
+            query = query.filter(Compra.estado == estado)
+        else:
+            query = query.filter(Compra.estado != "cancelada")
+        return query.all()
+
     def update_estado(self, compra_id: int, estado: str) -> Compra | None:
         compra = self.get_by_id(compra_id)
         if not compra:

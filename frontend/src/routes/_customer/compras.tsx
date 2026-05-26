@@ -1,7 +1,7 @@
 // HU8 — Historial de compras del cliente
 // Endpoint backend:
 //   GET /clientes/me/compras?estado=  -> Purchase[] ordenado por fecha desc
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -24,14 +24,26 @@ export const Route = createFileRoute("/_customer/compras")({
 
 const estados: (PurchaseStatus | "todos")[] = [
   "todos",
-  "pendiente",
+  "pendiente_pago",
   "pagada",
   "enviada",
   "entregada",
   "cancelada",
 ];
 
+const estadoLabels: Record<PurchaseStatus | "todos", string> = {
+  todos: "todos",
+  pendiente_pago: "pendiente",
+  pagada: "pagada",
+  enviada: "enviada",
+  entregada: "entregada",
+  cancelada: "cancelada",
+};
+
 function PurchasesPage() {
+  const isChildRoute = useRouterState({
+    select: (state) => state.location.pathname !== "/compras",
+  });
   const [estado, setEstado] = useState<string>("todos");
 
   const qs = estado !== "todos" ? `?estado=${estado}` : "";
@@ -39,6 +51,10 @@ function PurchasesPage() {
     queryKey: ["compras", estado],
     queryFn: () => api<Purchase[]>(`/clientes/me/compras${qs}`),
   });
+
+  if (isChildRoute) {
+    return <Outlet />;
+  }
 
   return (
     <div className="space-y-6">
@@ -55,7 +71,7 @@ function PurchasesPage() {
               <SelectContent>
                 {estados.map((s) => (
                   <SelectItem key={s} value={s}>
-                    {s}
+                    {estadoLabels[s]}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -76,7 +92,7 @@ function PurchasesPage() {
                     {new Date(p.fecha).toLocaleString()}
                   </p>
                 </div>
-                <Badge variant="secondary">{p.estado}</Badge>
+                <Badge variant="secondary">{estadoLabels[p.estado]}</Badge>
               </CardHeader>
               <CardContent className="flex items-center justify-between">
                 <span className="text-lg font-semibold">${p.total.toFixed(2)}</span>

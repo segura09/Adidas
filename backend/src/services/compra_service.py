@@ -48,6 +48,7 @@ class CompraService:
 
     def apply_coupon_to_purchase(self, codigo_cupon: str):
         """Busca el cupón, valida vigencia y disponibilidad de usos (HU6)."""
+        codigo_cupon = codigo_cupon.strip().upper()
         cupon = self.repository.get_coupon_by_code(codigo_cupon)
         
         if not cupon:
@@ -73,7 +74,7 @@ class CompraService:
 
     def recalculate_total_with_discount(self, total: float, porcentaje_descuento: int) -> float:
         """Aplica el porcentaje de descuento al total original (HU6)."""
-        descuento = float(total) * (porcentaje_descuento / 100.0)
+        descuento = float(total) * (float(porcentaje_descuento) / 100.0)
         total_final = float(total) - descuento
         return max(total_final, 0.0)
 
@@ -99,7 +100,7 @@ class CompraService:
                 usuario_id=data.usuario_id,
                 total=total,
                 cupon_id=cupon_id,
-                estado="pendiente"
+                estado="pendiente_pago"
             )
 
             purchase_items = []

@@ -21,14 +21,28 @@ function BillingReportPage() {
   const monthAgo = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
   const [desde, setDesde] = useState(monthAgo);
   const [hasta, setHasta] = useState(today);
-  const [enabled, setEnabled] = useState(true);
+  const [periodo, setPeriodo] = useState({ desde: monthAgo, hasta: today });
+  const [error, setError] = useState<string | null>(null);
 
-  const { data, isLoading, refetch } = useQuery({
-    queryKey: ["facturacion", desde, hasta],
+  const { data, isLoading } = useQuery({
+    queryKey: ["facturacion", periodo.desde, periodo.hasta],
     queryFn: () =>
-      api<BillingReport>(`/reportes/facturacion?desde=${desde}&hasta=${hasta}`),
-    enabled,
+      api<BillingReport>(`/reportes/facturacion?desde=${periodo.desde}&hasta=${periodo.hasta}`),
   });
+
+  function generarReporte() {
+    if (!desde || !hasta) {
+      setError("Elegí ambas fechas.");
+      return;
+    }
+    if (desde > hasta) {
+      setError("La fecha desde no puede ser mayor que la fecha hasta.");
+      return;
+    }
+
+    setError(null);
+    setPeriodo({ desde, hasta });
+  }
 
   return (
     <div className="space-y-6">
@@ -48,14 +62,13 @@ function BillingReportPage() {
               <Input type="date" value={hasta} onChange={(e) => setHasta(e.target.value)} />
             </div>
             <Button
-              onClick={() => {
-                setEnabled(true);
-                refetch();
-              }}
+              onClick={generarReporte}
+              disabled={isLoading}
             >
-              Generar
+              {isLoading ? "Generando..." : "Generar"}
             </Button>
           </div>
+          {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
         </CardContent>
       </Card>
 
@@ -102,7 +115,7 @@ function BillingReportPage() {
               </TableHeader>
               <TableBody>
                 {data.por_categoria.map((c) => (
-                  <TableRow key={c.categoria_id}>
+                  <TableRow key={`${c.categoria_id}-${c.nombre}`}>
                     <TableCell>{c.nombre}</TableCell>
                     <TableCell className="text-right">${c.total.toFixed(2)}</TableCell>
                   </TableRow>

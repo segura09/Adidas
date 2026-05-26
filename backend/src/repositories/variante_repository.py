@@ -48,7 +48,7 @@ class VarianteRepository:
         rows = (
             self.db.query(Variante, Producto)
             .join(Producto, Variante.producto_id == Producto.id)
-            .filter(Variante.stock <= umbral)
+            .filter(Producto.activo == True, Variante.stock <= umbral)
             .order_by(Variante.stock.asc())
             .all()
         )

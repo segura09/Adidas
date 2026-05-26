@@ -8,6 +8,7 @@ export const Route = createFileRoute("/admin/")({
 const tiles = [
   { to: "/admin/categorias", title: "Categorías", desc: "Crear y listar categorías." },
   { to: "/admin/productos", title: "Productos", desc: "ABM de productos y variantes." },
+  { to: "/admin/compras", title: "Compras", desc: "Confirmar pagos y gestionar estados." },
   { to: "/admin/cupones", title: "Cupones", desc: "Gestionar cupones de descuento." },
   { to: "/admin/stock-bajo", title: "Stock bajo", desc: "Variantes por debajo del umbral." },
   { to: "/admin/reportes/top-productos", title: "Top productos", desc: "Más vendidos." },

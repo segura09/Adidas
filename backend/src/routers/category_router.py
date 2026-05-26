@@ -24,3 +24,9 @@ def create_category(payload: CreateCategorySchema, db: Session = Depends(get_db)
         descripcion=payload.descripcion or payload.nombre,
     )
     return CategoryService(db).create(dto)
+
+
+@router.delete("/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_category(category_id: int, db: Session = Depends(get_db)):
+    CategoryService(db).delete(category_id)
+    return

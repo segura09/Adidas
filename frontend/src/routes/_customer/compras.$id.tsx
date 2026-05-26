@@ -30,38 +30,27 @@ function PurchaseDetailPage() {
   function action(path: string) {
     return useMutation({
       mutationFn: () => api<Purchase>(`/compras/${id}/${path}`, { method: "POST" }),
-      onSuccess: () => qc.invalidateQueries({ queryKey: ["compra", id] }),
+      onSuccess: () => {
+        qc.invalidateQueries({ queryKey: ["compra", id] });
+        qc.invalidateQueries({ queryKey: ["compras"] });
+      },
     });
   }
 
   // hooks must be called unconditionally
-  const pagar = action("pagar");
   const cancelar = action("cancelar");
-  const enviar = action("enviar");
-  const entregar = action("entregar");
 
   if (isLoading || !data) {
     return <p className="text-sm text-muted-foreground">Cargando…</p>;
   }
 
-  const allowed = (estado: string) => {
-    switch (data.estado) {
-      case "pendiente":
-        return ["pagar", "cancelar"].includes(estado);
-      case "pagada":
-        return ["enviar", "cancelar"].includes(estado);
-      case "enviada":
-        return ["entregar"].includes(estado);
-      default:
-        return false;
-    }
-  };
+  const canCancel = data.estado === "pendiente_pago";
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Compra #{data.id}</h1>
-        <Badge variant="secondary">{data.estado}</Badge>
+        <Badge variant="secondary">{data.estado === "pendiente_pago" ? "pendiente" : data.estado}</Badge>
       </div>
 
       <Card>
@@ -91,13 +80,14 @@ function PurchaseDetailPage() {
               ))}
             </TableBody>
           </Table>
-          <div className="mt-4 flex justify-end gap-6 text-sm">
-            {data.descuento ? (
-              <span className="text-muted-foreground">
-                Descuento: -${data.descuento.toFixed(2)}
-              </span>
-            ) : null}
-            <span className="text-lg font-semibold">Total: ${data.total.toFixed(2)}</span>
+          <div className="mt-4 space-y-2 text-right text-sm">
+            <p className="text-muted-foreground">
+              Subtotal: ${(data.subtotal ?? data.total + (data.descuento ?? 0)).toFixed(2)}
+            </p>
+            <p className="text-muted-foreground">
+              Descuento: {data.descuento ? `-$${data.descuento.toFixed(2)}` : "sin descuento"}
+            </p>
+            <p className="text-lg font-semibold">Total: ${data.total.toFixed(2)}</p>
           </div>
         </CardContent>
       </Card>
@@ -107,22 +97,7 @@ function PurchaseDetailPage() {
           <CardTitle>Acciones</CardTitle>
         </CardHeader>
         <CardContent className="flex flex-wrap gap-2">
-          {allowed("pagar") && (
-            <Button onClick={() => pagar.mutate()} disabled={pagar.isPending}>
-              Marcar pagada
-            </Button>
-          )}
-          {allowed("enviar") && (
-            <Button onClick={() => enviar.mutate()} disabled={enviar.isPending}>
-              Marcar enviada
-            </Button>
-          )}
-          {allowed("entregar") && (
-            <Button onClick={() => entregar.mutate()} disabled={entregar.isPending}>
-              Marcar entregada
-            </Button>
-          )}
-          {allowed("cancelar") && (
+          {canCancel && (
             <Button
               variant="destructive"
               onClick={() => cancelar.mutate()}
@@ -138,13 +113,9 @@ function PurchaseDetailPage() {
               </Link>
             </Button>
           )}
-          {!allowed("pagar") &&
-            !allowed("enviar") &&
-            !allowed("entregar") &&
-            !allowed("cancelar") &&
-            data.estado !== "entregada" && (
-              <p className="text-sm text-muted-foreground">No hay acciones disponibles.</p>
-            )}
+          {!canCancel && data.estado !== "entregada" && (
+            <p className="text-sm text-muted-foreground">No hay acciones disponibles.</p>
+          )}
         </CardContent>
       </Card>
     </div>

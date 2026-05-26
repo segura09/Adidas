@@ -5,11 +5,11 @@
 //   POST   /productos              -> Product  body: { nombre, descripcion, precio_base, categoria_id }
 //   PUT    /productos/{id}         -> Product  body: parcial
 //   DELETE /productos/{id}         -> baja lógica (activo=false)
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import type { Category, Product } from "@/lib/types";
+import type { Category, Product, Variant } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -34,11 +34,27 @@ interface FormState {
   descripcion: string;
   precio_base: string;
   categoria_id: string;
+  talle: string;
+  color: string;
+  stock: string;
+  sku: string;
 }
 
-const empty: FormState = { nombre: "", descripcion: "", precio_base: "", categoria_id: "" };
+const empty: FormState = {
+  nombre: "",
+  descripcion: "",
+  precio_base: "",
+  categoria_id: "",
+  talle: "",
+  color: "",
+  stock: "1",
+  sku: "",
+};
 
 function ProductsPage() {
+  const isChildRoute = useRouterState({
+    select: (state) => state.location.pathname !== "/admin/productos",
+  });
   const qc = useQueryClient();
   const [form, setForm] = useState<FormState>(empty);
 
@@ -46,8 +62,8 @@ function ProductsPage() {
   const prods = useQuery({ queryKey: ["productos"], queryFn: () => api<Product[]>("/productos") });
 
   const create = useMutation({
-    mutationFn: (data: FormState) =>
-      api<Product>("/productos", {
+    mutationFn: async (data: FormState) => {
+      const product = await api<Product>("/productos", {
         method: "POST",
         body: {
           nombre: data.nombre,
@@ -55,7 +71,20 @@ function ProductsPage() {
           precio_base: Number(data.precio_base),
           categoria_id: Number(data.categoria_id),
         },
-      }),
+      });
+
+      await api<Variant>(`/productos/${product.id}/variantes`, {
+        method: "POST",
+        body: {
+          talle: data.talle,
+          color: data.color,
+          stock: Number(data.stock),
+          sku: data.sku || buildSku(product.nombre, data.talle, data.color),
+        },
+      });
+
+      return product;
+    },
     onSuccess: () => {
       setForm(empty);
       qc.invalidateQueries({ queryKey: ["productos"] });
@@ -70,6 +99,10 @@ function ProductsPage() {
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     create.mutate(form);
+  }
+
+  if (isChildRoute) {
+    return <Outlet />;
   }
 
   return (
@@ -126,7 +159,43 @@ function ProductsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex items-end">
+            <div className="space-y-2">
+              <Label>Talle</Label>
+              <Input
+                value={form.talle}
+                onChange={(e) => setForm({ ...form, talle: e.target.value })}
+                placeholder="Ej: 40, M, L"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Color</Label>
+              <Input
+                value={form.color}
+                onChange={(e) => setForm({ ...form, color: e.target.value })}
+                placeholder="Ej: Negro"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Stock inicial</Label>
+              <Input
+                type="number"
+                min="0"
+                value={form.stock}
+                onChange={(e) => setForm({ ...form, stock: e.target.value })}
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>SKU</Label>
+              <Input
+                value={form.sku}
+                onChange={(e) => setForm({ ...form, sku: e.target.value })}
+                placeholder="Opcional"
+              />
+            </div>
+            <div className="flex items-end md:col-span-2">
               <Button type="submit" disabled={create.isPending}>
                 {create.isPending ? "Creando…" : "Crear producto"}
               </Button>
@@ -202,4 +271,14 @@ function ProductsPage() {
       </Card>
     </div>
   );
+}
+
+function buildSku(nombre: string, talle: string, color: string) {
+  const base = `${nombre}-${talle}-${color}`
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40);
+
+  return `${base}-${Date.now().toString().slice(-6)}`;
 }

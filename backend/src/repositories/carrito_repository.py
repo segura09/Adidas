@@ -96,7 +96,7 @@ class CarritoRepository:
         compra = Compra(
             cliente_id=cliente_id,
             total=total_carrito,
-            estado="pendiente",
+            estado="pendiente_pago",
         )
         self.db.add(compra)
         self.db.flush()

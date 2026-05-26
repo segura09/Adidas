@@ -51,6 +51,11 @@ function CouponsPage() {
     },
   });
 
+  const remove = useMutation({
+    mutationFn: (id: number) => api(`/cupones/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["cupones"] }),
+  });
+
   return (
     <div className="space-y-6">
       <h1 className="text-2xl font-semibold">Cupones</h1>
@@ -124,6 +129,7 @@ function CouponsPage() {
                   <TableHead>%</TableHead>
                   <TableHead>Vence</TableHead>
                   <TableHead>Usos</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -135,17 +141,34 @@ function CouponsPage() {
                     <TableCell>
                       {c.usos_actuales} / {c.usos_maximos}
                     </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={remove.isPending}
+                        onClick={() => {
+                          if (window.confirm(`Eliminar cupón ${c.codigo}?`)) {
+                            remove.mutate(c.id);
+                          }
+                        }}
+                      >
+                        Eliminar
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {data.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
                       Sin cupones.
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
+          )}
+          {remove.error && (
+            <p className="mt-3 text-sm text-destructive">{(remove.error as Error).message}</p>
           )}
         </CardContent>
       </Card>

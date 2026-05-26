@@ -4,7 +4,7 @@ import { getToken, clearAuth } from "./auth";
 
 export const API_URL =
   (typeof window !== "undefined" && (import.meta as any).env?.VITE_API_URL) ||
-  "http://localhost:8000/api";
+  "http://127.0.0.1:8001/api";
 
 export class ApiError extends Error {
   status: number;
@@ -53,7 +53,7 @@ export async function api<T = unknown>(
   if (!res.ok) {
     const message =
       (data && typeof data === "object" && "detail" in data
-        ? String((data as { detail: unknown }).detail)
+        ? formatApiDetail((data as { detail: unknown }).detail)
         : res.statusText) || "Error de red";
     throw new ApiError(message, res.status, data);
   }
@@ -67,4 +67,25 @@ function safeJson(text: string): unknown {
   } catch {
     return text;
   }
+}
+
+function formatApiDetail(detail: unknown): string {
+  if (typeof detail === "string") return detail;
+
+  if (Array.isArray(detail)) {
+    return detail
+      .map((item) => {
+        if (item && typeof item === "object" && "msg" in item) {
+          return String((item as { msg: unknown }).msg);
+        }
+        return String(item);
+      })
+      .join(". ");
+  }
+
+  if (detail && typeof detail === "object" && "msg" in detail) {
+    return String((detail as { msg: unknown }).msg);
+  }
+
+  return "No se pudo completar la operación";
 }

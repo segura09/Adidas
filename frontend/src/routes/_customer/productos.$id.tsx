@@ -6,7 +6,7 @@
 //   GET  /productos/{id}/resenas/resumen       -> ReviewSummary { promedio, cantidad }
 //   POST /productos/{id}/resenas               -> Review  body: { puntaje, comentario }
 //   POST /carritos/items                       -> Cart    body: { variante_id, cantidad }
-import { createFileRoute, useParams } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
@@ -30,6 +30,7 @@ export const Route = createFileRoute("/_customer/productos/$id")({
 
 function ProductDetailPage() {
   const { id } = useParams({ from: "/_customer/productos/$id" });
+  const navigate = useNavigate();
   const qc = useQueryClient();
   const [varianteId, setVarianteId] = useState<string>("");
   const [cantidad, setCantidad] = useState(1);
@@ -56,7 +57,10 @@ function ProductDetailPage() {
         method: "POST",
         body: { variante_id: Number(varianteId), cantidad },
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["carrito"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["carrito"] });
+      navigate({ to: "/carrito" });
+    },
   });
 
   const createReview = useMutation({

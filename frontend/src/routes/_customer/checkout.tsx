@@ -22,6 +22,7 @@ export const Route = createFileRoute("/_customer/checkout")({
 function CheckoutPage() {
   const navigate = useNavigate();
   const [codigo, setCodigo] = useState("");
+  const [cuponAplicado, setCuponAplicado] = useState("");
   const [descuentoPct, setDescuentoPct] = useState<number>(0);
   const [cuponMsg, setCuponMsg] = useState<string | null>(null);
 
@@ -39,19 +40,22 @@ function CheckoutPage() {
     mutationFn: () =>
       api<{ porcentaje_descuento: number; valido: boolean }>("/cupones/validar", {
         method: "POST",
-        body: { codigo },
+        body: { codigo: normalizarCodigo(codigo) },
       }),
     onSuccess: (res) => {
       if (res.valido) {
         setDescuentoPct(res.porcentaje_descuento);
+        setCuponAplicado(normalizarCodigo(codigo));
         setCuponMsg(`Cupón aplicado: ${res.porcentaje_descuento}% off`);
       } else {
         setDescuentoPct(0);
+        setCuponAplicado("");
         setCuponMsg("Cupón inválido o vencido");
       }
     },
     onError: (e) => {
       setDescuentoPct(0);
+      setCuponAplicado("");
       setCuponMsg((e as Error).message);
     },
   });
@@ -60,7 +64,7 @@ function CheckoutPage() {
     mutationFn: () =>
       api<Purchase>("/compras", {
         method: "POST",
-        body: codigo ? { cupon_codigo: codigo } : {},
+        body: cuponAplicado ? { codigo_cupon: cuponAplicado } : {},
       }),
     onSuccess: (p) => navigate({ to: "/compras/$id", params: { id: String(p.id) } }),
   });
@@ -77,12 +81,20 @@ function CheckoutPage() {
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
             <div className="flex-1 space-y-2">
               <Label>Código</Label>
-              <Input value={codigo} onChange={(e) => setCodigo(e.target.value)} />
+              <Input
+                value={codigo}
+                onChange={(e) => {
+                  setCodigo(e.target.value);
+                  setCuponAplicado("");
+                  setDescuentoPct(0);
+                  setCuponMsg(null);
+                }}
+              />
             </div>
             <Button
               variant="outline"
               onClick={() => validar.mutate()}
-              disabled={!codigo || validar.isPending}
+              disabled={!normalizarCodigo(codigo) || validar.isPending}
             >
               Aplicar
             </Button>
@@ -123,4 +135,8 @@ function Row({ label, value, bold }: { label: string; value: string; bold?: bool
       <span>{value}</span>
     </div>
   );
+}
+
+function normalizarCodigo(codigo: string) {
+  return codigo.trim().toUpperCase();
 }

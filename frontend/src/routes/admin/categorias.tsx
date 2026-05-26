@@ -41,6 +41,11 @@ function CategoriesPage() {
     },
   });
 
+  const remove = useMutation({
+    mutationFn: (id: number) => api(`/categorias/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["categorias"] }),
+  });
+
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!nombre.trim()) return;
@@ -85,6 +90,7 @@ function CategoriesPage() {
                 <TableRow>
                   <TableHead className="w-20">ID</TableHead>
                   <TableHead>Nombre</TableHead>
+                  <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -92,17 +98,34 @@ function CategoriesPage() {
                   <TableRow key={c.id}>
                     <TableCell>{c.id}</TableCell>
                     <TableCell>{c.nombre}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        disabled={remove.isPending}
+                        onClick={() => {
+                          if (window.confirm(`Eliminar categoria "${c.nombre}"?`)) {
+                            remove.mutate(c.id);
+                          }
+                        }}
+                      >
+                        Eliminar
+                      </Button>
+                    </TableCell>
                   </TableRow>
                 ))}
                 {data.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={2} className="text-center text-muted-foreground">
+                    <TableCell colSpan={3} className="text-center text-muted-foreground">
                       Sin categorías todavía.
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
+          )}
+          {remove.error && (
+            <p className="mt-2 text-sm text-destructive">{(remove.error as Error).message}</p>
           )}
         </CardContent>
       </Card>

@@ -62,7 +62,12 @@ export interface Cart {
   items: CartItem[];
 }
 
-export type PurchaseStatus = "pendiente" | "pagada" | "enviada" | "entregada" | "cancelada";
+export type PurchaseStatus =
+  | "pendiente_pago"
+  | "pagada"
+  | "enviada"
+  | "entregada"
+  | "cancelada";
 
 export interface PurchaseItem {
   variante_id: number;
@@ -79,6 +84,7 @@ export interface Purchase {
   fecha: string;
   estado: PurchaseStatus;
   total: number;
+  subtotal?: number;
   descuento?: number;
   cupon_id?: number | null;
   items: PurchaseItem[];

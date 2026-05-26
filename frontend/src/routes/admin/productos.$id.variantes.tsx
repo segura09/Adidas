@@ -22,9 +22,8 @@ interface FormState {
   talle: string;
   color: string;
   stock: string;
-  sku: string;
 }
-const empty: FormState = { talle: "", color: "", stock: "0", sku: "" };
+const empty: FormState = { talle: "", color: "", stock: "0" };
 
 function VariantsPage() {
   const { id } = useParams({ from: "/admin/productos/$id/variantes" });
@@ -40,7 +39,12 @@ function VariantsPage() {
     mutationFn: (f: FormState) =>
       api<Variant>(`/productos/${id}/variantes`, {
         method: "POST",
-        body: { talle: f.talle, color: f.color, stock: Number(f.stock), sku: f.sku },
+        body: {
+          talle: f.talle,
+          color: f.color,
+          stock: Number(f.stock),
+          sku: buildSku(id, f.talle, f.color),
+        },
       }),
     onSuccess: () => {
       setForm(empty);
@@ -73,7 +77,7 @@ function VariantsPage() {
               e.preventDefault();
               create.mutate(form);
             }}
-            className="grid grid-cols-2 gap-3 md:grid-cols-4"
+            className="grid grid-cols-1 gap-3 md:grid-cols-3"
           >
             <div className="space-y-2">
               <Label>Talle</Label>
@@ -93,11 +97,7 @@ function VariantsPage() {
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label>SKU</Label>
-              <Input value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} required />
-            </div>
-            <div className="col-span-2 md:col-span-4">
+            <div className="md:col-span-3">
               <Button type="submit" disabled={create.isPending}>
                 {create.isPending ? "Creando…" : "Crear variante"}
               </Button>
@@ -161,4 +161,14 @@ function VariantsPage() {
       </Card>
     </div>
   );
+}
+
+function buildSku(productId: string, talle: string, color: string) {
+  const base = `PROD-${productId}-${talle}-${color}`
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, "-")
+    .replace(/^-|-$/g, "")
+    .slice(0, 40);
+
+  return `${base}-${Date.now().toString().slice(-6)}`;
 }

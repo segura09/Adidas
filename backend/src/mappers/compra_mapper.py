@@ -1,9 +1,15 @@
 def compra_to_response(compra):
+    subtotal = sum(float(item.precio_unitario) * item.cantidad for item in compra.items)
+    total = float(compra.total)
+    descuento = max(subtotal - total, 0.0)
+
     return {
         "id": compra.id,
         "cliente_id": compra.cliente_id,
         "fecha": compra.fecha,
-        "total": float(compra.total),
+        "total": total,
+        "subtotal": subtotal,
+        "descuento": descuento,
         "estado": compra.estado,
         "cupon_codigo": getattr(getattr(compra, "cupon", None), "codigo", None),
         "items": [

@@ -1,4 +1,6 @@
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
+from fastapi import HTTPException, status
 
 from src.dtos.category_dto import CreateCategoryDTO, CategoryResponseDTO
 from src.mappers.category_mapper import to_category_response
@@ -17,3 +19,18 @@ class CategoryService:
     def list_all(self) -> list[CategoryResponseDTO]:
         return [to_category_response(category) for category in self.repo.find_all()]
 
+    def delete(self, category_id: int) -> None:
+        try:
+            deleted = self.repo.delete(category_id)
+        except IntegrityError:
+            self.repo.db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="No se puede eliminar una categoria con productos asociados.",
+            )
+
+        if not deleted:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Categoria no encontrada.",
+            )

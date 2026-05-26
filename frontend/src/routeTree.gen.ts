@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RegisterRouteImport } from './routes/register'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as CustomerRouteImport } from './routes/_customer'
@@ -17,6 +18,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as AdminStockBajoRouteImport } from './routes/admin/stock-bajo'
 import { Route as AdminProductosRouteImport } from './routes/admin/productos'
 import { Route as AdminCuponesRouteImport } from './routes/admin/cupones'
+import { Route as AdminComprasRouteImport } from './routes/admin/compras'
 import { Route as AdminCategoriasRouteImport } from './routes/admin/categorias'
 import { Route as CustomerProductosRouteImport } from './routes/_customer/productos'
 import { Route as CustomerComprasRouteImport } from './routes/_customer/compras'
@@ -29,6 +31,11 @@ import { Route as CustomerComprasIdRouteImport } from './routes/_customer/compra
 import { Route as AdminProductosIdVariantesRouteImport } from './routes/admin/productos.$id.variantes'
 import { Route as CustomerComprasIdDevolucionRouteImport } from './routes/_customer/compras.$id.devolucion'
 
+const RegisterRoute = RegisterRouteImport.update({
+  id: '/register',
+  path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -66,6 +73,11 @@ const AdminProductosRoute = AdminProductosRouteImport.update({
 const AdminCuponesRoute = AdminCuponesRouteImport.update({
   id: '/cupones',
   path: '/cupones',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminComprasRoute = AdminComprasRouteImport.update({
+  id: '/compras',
+  path: '/compras',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminCategoriasRoute = AdminCategoriasRouteImport.update({
@@ -132,11 +144,13 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/carrito': typeof CustomerCarritoRoute
   '/checkout': typeof CustomerCheckoutRoute
   '/compras': typeof CustomerComprasRouteWithChildren
   '/productos': typeof CustomerProductosRouteWithChildren
   '/admin/categorias': typeof AdminCategoriasRoute
+  '/admin/compras': typeof AdminComprasRoute
   '/admin/cupones': typeof AdminCuponesRoute
   '/admin/productos': typeof AdminProductosRouteWithChildren
   '/admin/stock-bajo': typeof AdminStockBajoRoute
@@ -151,11 +165,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/carrito': typeof CustomerCarritoRoute
   '/checkout': typeof CustomerCheckoutRoute
   '/compras': typeof CustomerComprasRouteWithChildren
   '/productos': typeof CustomerProductosRouteWithChildren
   '/admin/categorias': typeof AdminCategoriasRoute
+  '/admin/compras': typeof AdminComprasRoute
   '/admin/cupones': typeof AdminCuponesRoute
   '/admin/productos': typeof AdminProductosRouteWithChildren
   '/admin/stock-bajo': typeof AdminStockBajoRoute
@@ -173,11 +189,13 @@ export interface FileRoutesById {
   '/_customer': typeof CustomerRouteWithChildren
   '/admin': typeof AdminRouteWithChildren
   '/login': typeof LoginRoute
+  '/register': typeof RegisterRoute
   '/_customer/carrito': typeof CustomerCarritoRoute
   '/_customer/checkout': typeof CustomerCheckoutRoute
   '/_customer/compras': typeof CustomerComprasRouteWithChildren
   '/_customer/productos': typeof CustomerProductosRouteWithChildren
   '/admin/categorias': typeof AdminCategoriasRoute
+  '/admin/compras': typeof AdminComprasRoute
   '/admin/cupones': typeof AdminCuponesRoute
   '/admin/productos': typeof AdminProductosRouteWithChildren
   '/admin/stock-bajo': typeof AdminStockBajoRoute
@@ -195,11 +213,13 @@ export interface FileRouteTypes {
     | '/'
     | '/admin'
     | '/login'
+    | '/register'
     | '/carrito'
     | '/checkout'
     | '/compras'
     | '/productos'
     | '/admin/categorias'
+    | '/admin/compras'
     | '/admin/cupones'
     | '/admin/productos'
     | '/admin/stock-bajo'
@@ -214,11 +234,13 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/register'
     | '/carrito'
     | '/checkout'
     | '/compras'
     | '/productos'
     | '/admin/categorias'
+    | '/admin/compras'
     | '/admin/cupones'
     | '/admin/productos'
     | '/admin/stock-bajo'
@@ -235,11 +257,13 @@ export interface FileRouteTypes {
     | '/_customer'
     | '/admin'
     | '/login'
+    | '/register'
     | '/_customer/carrito'
     | '/_customer/checkout'
     | '/_customer/compras'
     | '/_customer/productos'
     | '/admin/categorias'
+    | '/admin/compras'
     | '/admin/cupones'
     | '/admin/productos'
     | '/admin/stock-bajo'
@@ -257,10 +281,18 @@ export interface RootRouteChildren {
   CustomerRoute: typeof CustomerRouteWithChildren
   AdminRoute: typeof AdminRouteWithChildren
   LoginRoute: typeof LoginRoute
+  RegisterRoute: typeof RegisterRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/register': {
+      id: '/register'
+      path: '/register'
+      fullPath: '/register'
+      preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -315,6 +347,13 @@ declare module '@tanstack/react-router' {
       path: '/cupones'
       fullPath: '/admin/cupones'
       preLoaderRoute: typeof AdminCuponesRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/compras': {
+      id: '/admin/compras'
+      path: '/compras'
+      fullPath: '/admin/compras'
+      preLoaderRoute: typeof AdminComprasRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/categorias': {
@@ -463,6 +502,7 @@ const AdminProductosRouteWithChildren = AdminProductosRoute._addFileChildren(
 
 interface AdminRouteChildren {
   AdminCategoriasRoute: typeof AdminCategoriasRoute
+  AdminComprasRoute: typeof AdminComprasRoute
   AdminCuponesRoute: typeof AdminCuponesRoute
   AdminProductosRoute: typeof AdminProductosRouteWithChildren
   AdminStockBajoRoute: typeof AdminStockBajoRoute
@@ -473,6 +513,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminCategoriasRoute: AdminCategoriasRoute,
+  AdminComprasRoute: AdminComprasRoute,
   AdminCuponesRoute: AdminCuponesRoute,
   AdminProductosRoute: AdminProductosRouteWithChildren,
   AdminStockBajoRoute: AdminStockBajoRoute,
@@ -488,6 +529,7 @@ const rootRouteChildren: RootRouteChildren = {
   CustomerRoute: CustomerRouteWithChildren,
   AdminRoute: AdminRouteWithChildren,
   LoginRoute: LoginRoute,
+  RegisterRoute: RegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

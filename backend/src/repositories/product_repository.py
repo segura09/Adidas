@@ -52,10 +52,10 @@ class ProductRepository:
             query = query.filter(Producto.categoria_id == categoria)
 
         if talle:
-            query = query.filter(Variante.talle == talle)
+            query = query.filter(func.lower(Variante.talle) == talle.strip().lower())
 
         if color:
-            query = query.filter(Variante.color == color)
+            query = query.filter(func.lower(Variante.color) == color.strip().lower())
 
         return query.distinct().all()
 

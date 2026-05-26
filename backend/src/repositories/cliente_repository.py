@@ -17,6 +17,9 @@ class ClienteRepository:
     def find_by_id(self, cliente_id: int) -> Cliente | None:
         return self.db.query(Cliente).filter(Cliente.id == cliente_id).first()
 
+    def find_by_email(self, email: str) -> Cliente | None:
+        return self.db.query(Cliente).filter(Cliente.email == email).first()
+
     def list_all(self) -> list[Cliente]:
         return self.db.query(Cliente).order_by(Cliente.id.asc()).all()
 

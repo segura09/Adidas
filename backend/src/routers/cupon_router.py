@@ -35,3 +35,9 @@ def validate_coupon(payload: dict, service: CuponService = Depends(get_service))
         "porcentaje_descuento": cupon.porcentaje_descuento,
         "cupon": cupon,
     }
+
+
+@router.delete("/{cupon_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_coupon(cupon_id: int, service: CuponService = Depends(get_service)):
+    service.delete_coupon(cupon_id)
+    return

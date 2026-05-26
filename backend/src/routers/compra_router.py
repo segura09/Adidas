@@ -1,33 +1,47 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from src.db.connection import get_db
 from src.db.models.carrito_model import CarritoItem
 from src.dtos.compra_dto import CompraConItemsResponseDTO
 from src.mappers.compra_mapper import compra_to_response
+from src.routers.carrito_router import get_current_cliente_id
 from src.schemas.checkout_schema import CheckoutItemSchema, CheckoutSchema
 from src.services.compra_service import CompraService
 
 
 router = APIRouter(prefix="/compras", tags=["Compras"])
-CLIENTE_MOCK_ID = 1
+
+
+@router.get("", response_model=list[CompraConItemsResponseDTO])
+@router.get("/", response_model=list[CompraConItemsResponseDTO])
+def list_purchases(
+    estado: str | None = Query(None),
+    db: Session = Depends(get_db),
+):
+    compras = CompraService(db).repository.list_all(estado=estado)
+    return [compra_to_response(compra) for compra in compras]
 
 
 @router.post("", response_model=CompraConItemsResponseDTO)
 @router.post("/", response_model=CompraConItemsResponseDTO)
-def create_purchase(data: CheckoutSchema, db: Session = Depends(get_db)):
+def create_purchase(
+    data: CheckoutSchema,
+    cliente_id: int = Depends(get_current_cliente_id),
+    db: Session = Depends(get_db),
+):
     if not data.items:
-        cart_items = db.query(CarritoItem).filter(CarritoItem.cliente_id == CLIENTE_MOCK_ID).all()
+        cart_items = db.query(CarritoItem).filter(CarritoItem.cliente_id == cliente_id).all()
         if not cart_items:
             raise HTTPException(status_code=400, detail="El carrito esta vacio")
-        data.usuario_id = CLIENTE_MOCK_ID
         data.items = [
             CheckoutItemSchema(variante_id=item.variante_id, cantidad=item.cantidad)
             for item in cart_items
         ]
 
+    data.usuario_id = cliente_id
     compra = CompraService(db).create_purchase(data)
-    db.query(CarritoItem).filter(CarritoItem.cliente_id == data.usuario_id).delete()
+    db.query(CarritoItem).filter(CarritoItem.cliente_id == cliente_id).delete()
     db.commit()
     db.refresh(compra)
     return compra_to_response(compra)

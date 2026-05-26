@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 
+from src.db.models.compra_model import Compra
 from src.db.models.cupon_model import Cupon
 
 
@@ -31,3 +32,22 @@ class CuponRepository:
         self.db.commit()
         self.db.refresh(cupon)
         return cupon
+
+    def is_used_in_purchase(self, cupon_id: int) -> bool:
+        return self.db.query(Compra.id).filter(Compra.cupon_id == cupon_id).first() is not None
+
+    def detach_from_purchases(self, cupon_id: int) -> None:
+        self.db.query(Compra).filter(Compra.cupon_id == cupon_id).update(
+            {Compra.cupon_id: None},
+            synchronize_session=False,
+        )
+
+    def delete(self, cupon_id: int) -> bool:
+        cupon = self.db.query(Cupon).filter(Cupon.id == cupon_id).first()
+        if not cupon:
+            return False
+
+        self.detach_from_purchases(cupon_id)
+        self.db.delete(cupon)
+        self.db.commit()
+        return True

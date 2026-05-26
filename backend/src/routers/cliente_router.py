@@ -6,17 +6,20 @@ from src.dtos.cliente_dto import CreateClienteDTO, ClienteResponseDTO, UpdateCli
 from src.dtos.compra_dto import CompraConItemsResponseDTO
 from src.schemas.cliente_schema import CreateClienteSchema, UpdateClienteSchema
 from src.services.cliente_service import ClienteService
+from src.routers.carrito_router import get_current_cliente_id
 
 router = APIRouter(prefix="/clientes", tags=["Clientes"])
-CLIENTE_MOCK_ID = 1
 
 
 @router.get("/me/compras", response_model=list[CompraConItemsResponseDTO])
 def get_my_purchases(
     estado: str | None = Query(None),
+    cliente_id: int = Depends(get_current_cliente_id),
     db: Session = Depends(get_db)
 ):
-    return ClienteService(db).get_customer_purchases(cliente_id=CLIENTE_MOCK_ID, estado=estado)
+    if estado == "pendiente":
+        estado = "pendiente_pago"
+    return ClienteService(db).get_customer_purchases(cliente_id=cliente_id, estado=estado)
 
 
 @router.get("/{cliente_id}/compras", response_model=list[CompraConItemsResponseDTO])

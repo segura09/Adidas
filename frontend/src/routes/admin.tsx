@@ -10,6 +10,7 @@ const items = [
   { to: "/admin", label: "Inicio" },
   { to: "/admin/categorias", label: "Categorías" },
   { to: "/admin/productos", label: "Productos" },
+  { to: "/admin/compras", label: "Compras" },
   { to: "/admin/cupones", label: "Cupones" },
   { to: "/admin/stock-bajo", label: "Stock bajo" },
   { to: "/admin/reportes/top-productos", label: "Top productos" },
