@@ -8,7 +8,9 @@
 import { createFileRoute, Link, Outlet, useRouterState } from "@tanstack/react-router";
 import { useState, type FormEvent } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api } from "@/lib/api";
+import { api, API_URL } from "@/lib/api";
+import { getToken } from "@/lib/auth";
+import { getProductImage } from "@/lib/product-images";
 import type { Category, Product, Variant } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +59,7 @@ function ProductsPage() {
   });
   const qc = useQueryClient();
   const [form, setForm] = useState<FormState>(empty);
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
   const cats = useQuery({ queryKey: ["categorias"], queryFn: () => api<Category[]>("/categorias") });
   const prods = useQuery({ queryKey: ["productos"], queryFn: () => api<Product[]>("/productos") });
@@ -83,16 +86,27 @@ function ProductsPage() {
         },
       });
 
+      if (imageFile) {
+        await uploadProductImage(product.id, imageFile);
+      }
+
       return product;
     },
     onSuccess: () => {
       setForm(empty);
+      setImageFile(null);
       qc.invalidateQueries({ queryKey: ["productos"] });
     },
   });
 
   const deactivate = useMutation({
     mutationFn: (id: number) => api(`/productos/${id}`, { method: "DELETE" }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["productos"] }),
+  });
+
+  const uploadImage = useMutation({
+    mutationFn: ({ productId, file }: { productId: number; file: File }) =>
+      uploadProductImage(productId, file),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["productos"] }),
   });
 
@@ -195,6 +209,14 @@ function ProductsPage() {
                 placeholder="Opcional"
               />
             </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label>Imagen</Label>
+              <Input
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+              />
+            </div>
             <div className="flex items-end md:col-span-2">
               <Button type="submit" disabled={create.isPending}>
                 {create.isPending ? "Creando…" : "Crear producto"}
@@ -218,7 +240,8 @@ function ProductsPage() {
           {prods.data && (
             <Table>
               <TableHeader>
-                <TableRow>
+                  <TableRow>
+                  <TableHead>Imagen</TableHead>
                   <TableHead>ID</TableHead>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Precio</TableHead>
@@ -229,6 +252,17 @@ function ProductsPage() {
               <TableBody>
                 {prods.data.map((p) => (
                   <TableRow key={p.id}>
+                    <TableCell>
+                      {getProductImage(p) ? (
+                        <img
+                          src={getProductImage(p)!}
+                          alt={p.nombre}
+                          className="h-12 w-12 rounded-md object-contain"
+                        />
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Sin imagen</span>
+                      )}
+                    </TableCell>
                     <TableCell>{p.id}</TableCell>
                     <TableCell>{p.nombre}</TableCell>
                     <TableCell>${p.precio_base.toFixed(2)}</TableCell>
@@ -240,6 +274,17 @@ function ProductsPage() {
                       )}
                     </TableCell>
                     <TableCell className="space-x-2 text-right">
+                      <Input
+                        type="file"
+                        accept="image/png,image/jpeg,image/webp"
+                        className="inline-flex max-w-44"
+                        disabled={uploadImage.isPending}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) uploadImage.mutate({ productId: p.id, file });
+                          e.target.value = "";
+                        }}
+                      />
                       <Button asChild size="sm" variant="outline">
                         <Link to="/admin/productos/$id/variantes" params={{ id: String(p.id) }}>
                           Variantes
@@ -259,7 +304,7 @@ function ProductsPage() {
                 ))}
                 {prods.data.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
                       Sin productos cargados.
                     </TableCell>
                   </TableRow>
@@ -281,4 +326,24 @@ function buildSku(nombre: string, talle: string, color: string) {
     .slice(0, 40);
 
   return `${base}-${Date.now().toString().slice(-6)}`;
+}
+
+async function uploadProductImage(productId: number, file: File) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const token = getToken();
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  const res = await fetch(`${API_URL}/productos/${productId}/imagen`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || "No se pudo subir la imagen");
+  }
 }

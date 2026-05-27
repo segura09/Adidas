@@ -7,6 +7,7 @@ import { createFileRoute, Outlet, useRouterState } from "@tanstack/react-router"
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { getProductImage } from "@/lib/product-images";
 import type { Category, Product } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,6 +38,10 @@ function SearchProductsPage() {
 function ProductListPage() {
   const [categoria, setCategoria] = useState<string>("");
   const [producto, setProducto] = useState("");
+  const [precioMinDraft, setPrecioMinDraft] = useState("");
+  const [precioMaxDraft, setPrecioMaxDraft] = useState("");
+  const [precioMin, setPrecioMin] = useState("");
+  const [precioMax, setPrecioMax] = useState("");
 
   const cats = useQuery({ queryKey: ["categorias"], queryFn: () => api<Category[]>("/categorias") });
 
@@ -49,8 +54,15 @@ function ProductListPage() {
   });
 
   const productSearch = producto.trim().toLowerCase();
+  const min = precioMin ? Number(precioMin) : null;
+  const max = precioMax ? Number(precioMax) : null;
   const filteredProducts =
-    data?.filter((p) => p.nombre.toLowerCase().includes(productSearch)) ?? [];
+    data?.filter((p) => {
+      const matchesName = p.nombre.toLowerCase().includes(productSearch);
+      const matchesMin = min === null || p.precio_base >= min;
+      const matchesMax = max === null || p.precio_base <= max;
+      return matchesName && matchesMin && matchesMax;
+    }) ?? [];
 
   return (
     <div className="space-y-6">
@@ -61,7 +73,7 @@ function ProductListPage() {
           <CardTitle>Filtros</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3 xl:grid-cols-6">
             <div className="space-y-2">
               <Label>Categoría</Label>
               <Select value={categoria} onValueChange={setCategoria}>
@@ -85,6 +97,38 @@ function ProductListPage() {
                 placeholder="Buscar por nombre"
               />
             </div>
+            <div className="space-y-2">
+              <Label>Precio minimo</Label>
+              <Input
+                type="number"
+                min={0}
+                value={precioMinDraft}
+                onChange={(e) => setPrecioMinDraft(e.target.value)}
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Precio maximo</Label>
+              <Input
+                type="number"
+                min={0}
+                value={precioMaxDraft}
+                onChange={(e) => setPrecioMaxDraft(e.target.value)}
+                placeholder="Sin limite"
+              />
+            </div>
+            <div className="flex items-end">
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() => {
+                  setPrecioMin(precioMinDraft);
+                  setPrecioMax(precioMaxDraft);
+                }}
+              >
+                Filtrar precio
+              </Button>
+            </div>
             <div className="flex items-end">
               <Button
                 variant="outline"
@@ -92,6 +136,10 @@ function ProductListPage() {
                 onClick={() => {
                   setCategoria("");
                   setProducto("");
+                  setPrecioMinDraft("");
+                  setPrecioMaxDraft("");
+                  setPrecioMin("");
+                  setPrecioMax("");
                 }}
               >
                 Limpiar
@@ -106,6 +154,16 @@ function ProductListPage() {
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {filteredProducts.map((p) => (
             <Card key={p.id} className="h-full transition-colors hover:bg-accent">
+              {getProductImage(p) && (
+                <div className="aspect-square overflow-hidden rounded-t-lg bg-muted">
+                  <img
+                    src={getProductImage(p)!}
+                    alt={p.nombre}
+                    className="h-full w-full object-contain p-4"
+                    loading="lazy"
+                  />
+                </div>
+              )}
               <CardHeader>
                 <CardTitle className="text-base">{p.nombre}</CardTitle>
               </CardHeader>

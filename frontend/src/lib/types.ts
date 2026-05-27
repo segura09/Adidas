@@ -3,6 +3,7 @@
 
 export interface User {
   id: number;
+  cliente_id?: number | null;
   email: string;
   nombre?: string;
   isAdmin: boolean;
@@ -23,6 +24,7 @@ export interface Product {
   id: number;
   nombre: string;
   descripcion?: string;
+  image_url?: string | null;
   precio_base: number;
   categoria_id: number;
   activo: boolean;
@@ -70,6 +72,7 @@ export type PurchaseStatus =
   | "cancelada";
 
 export interface PurchaseItem {
+  producto_id?: number;
   variante_id: number;
   cantidad: number;
   precio_unitario: number;
@@ -93,6 +96,7 @@ export interface Purchase {
 export interface Review {
   id: number;
   cliente_id: number;
+  cliente_nombre?: string;
   producto_id: number;
   puntaje: number;
   comentario?: string;

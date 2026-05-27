@@ -14,6 +14,7 @@ def compra_to_response(compra):
         "cupon_codigo": getattr(getattr(compra, "cupon", None), "codigo", None),
         "items": [
             {
+                "producto_id": getattr(getattr(item, "variante", None), "producto_id", None),
                 "variante_id": item.variante_id,
                 "cantidad": item.cantidad,
                 "precio_unitario": float(item.precio_unitario),

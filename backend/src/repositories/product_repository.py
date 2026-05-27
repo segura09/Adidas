@@ -15,6 +15,7 @@ class ProductRepository:
         self,
         nombre: str,
         descripcion: str | None,
+        image_url: str | None,
         precio_base: float,
         categoria_id: int,
         activo: bool = True,
@@ -22,6 +23,7 @@ class ProductRepository:
         product = Producto(
             nombre=nombre,
             descripcion=descripcion,
+            image_url=image_url,
             precio_base=precio_base,
             categoria_id=categoria_id,
             activo=activo,

@@ -20,7 +20,7 @@ const items = [
 function AdminLayout() {
   return (
     <AuthGuard requireAdmin>
-      <AppShell title="Admin" items={items} />
+      <AppShell title="ADDIOS Admin" items={items} />
     </AuthGuard>
   );
 }

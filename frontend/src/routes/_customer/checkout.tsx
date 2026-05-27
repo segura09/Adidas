@@ -14,10 +14,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AuthGuard } from "@/components/auth-guard";
 
 export const Route = createFileRoute("/_customer/checkout")({
-  component: CheckoutPage,
+  component: ProtectedCheckoutPage,
 });
+
+function ProtectedCheckoutPage() {
+  return (
+    <AuthGuard>
+      <CheckoutPage />
+    </AuthGuard>
+  );
+}
 
 function CheckoutPage() {
   const navigate = useNavigate();

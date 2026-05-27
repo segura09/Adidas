@@ -10,10 +10,19 @@ import type { Cart } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { AuthGuard } from "@/components/auth-guard";
 
 export const Route = createFileRoute("/_customer/carrito")({
-  component: CartPage,
+  component: ProtectedCartPage,
 });
+
+function ProtectedCartPage() {
+  return (
+    <AuthGuard>
+      <CartPage />
+    </AuthGuard>
+  );
+}
 
 function CartPage() {
   const qc = useQueryClient();

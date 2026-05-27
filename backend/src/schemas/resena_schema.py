@@ -14,6 +14,7 @@ class ResenaCreate(BaseModel):
 class ResenaResponse(BaseModel):
     id: int
     cliente_id: int
+    cliente_nombre: Optional[str] = None
     producto_id: int
     puntaje: int
     comentario: Optional[str]

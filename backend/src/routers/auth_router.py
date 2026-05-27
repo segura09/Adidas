@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from src.db.connection import get_db
 from src.dtos.auth_dto import LoginDTO, TokenDTO
+from src.repositories.cliente_repository import ClienteRepository
 from src.schemas.auth_schema import LoginSchema, RegisterSchema, TokenSchema
 from src.services.auth_service import AuthService
 
@@ -15,10 +16,12 @@ def login(payload: LoginSchema, db: Session = Depends(get_db)):
     dto = LoginDTO(**payload.model_dump())
     token: TokenDTO = AuthService(db).login(dto)
     user = AuthService(db).repo.find_by_email(dto.email)
+    cliente = ClienteRepository(db).find_by_email(user.email)
     return TokenSchema(
         **token.model_dump(),
         user={
             "id": user.id,
+            "cliente_id": cliente.id if cliente else None,
             "email": user.email,
             "isAdmin": user.is_admin,
         },
@@ -40,6 +43,7 @@ def register(payload: RegisterSchema, db: Session = Depends(get_db)):
         **token.model_dump(),
         user={
             "id": user.id,
+            "cliente_id": ClienteRepository(db).find_by_email(user.email).id,
             "email": user.email,
             "isAdmin": user.is_admin,
         },

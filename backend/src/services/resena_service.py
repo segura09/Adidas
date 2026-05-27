@@ -63,6 +63,7 @@ class ResenaService:
         return {
             "id": resena.id,
             "cliente_id": resena.cliente_id,
+            "cliente_nombre": getattr(getattr(resena, "cliente", None), "nombre", None),
             "producto_id": resena.producto_id,
             "puntaje": resena.calificacion,
             "comentario": resena.comentario,

@@ -17,9 +17,10 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { AuthGuard } from "@/components/auth-guard";
 
 export const Route = createFileRoute("/_customer/compras")({
-  component: PurchasesPage,
+  component: ProtectedPurchasesPage,
 });
 
 const estados: (PurchaseStatus | "todos")[] = [
@@ -39,6 +40,14 @@ const estadoLabels: Record<PurchaseStatus | "todos", string> = {
   entregada: "entregada",
   cancelada: "cancelada",
 };
+
+function ProtectedPurchasesPage() {
+  return (
+    <AuthGuard>
+      <PurchasesPage />
+    </AuthGuard>
+  );
+}
 
 function PurchasesPage() {
   const isChildRoute = useRouterState({

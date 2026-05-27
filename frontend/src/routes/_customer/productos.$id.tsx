@@ -7,12 +7,14 @@
 //   POST /productos/{id}/resenas               -> Review  body: { puntaje, comentario }
 //   POST /carritos/items                       -> Cart    body: { variante_id, cantidad }
 import { createFileRoute, useNavigate, useParams } from "@tanstack/react-router";
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
+import { getToken } from "@/lib/auth";
+import { useAuth } from "@/hooks/use-auth";
+import { getProductImage } from "@/lib/product-images";
 import type { Product, Variant, Review, ReviewSummary } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -32,10 +34,9 @@ function ProductDetailPage() {
   const { id } = useParams({ from: "/_customer/productos/$id" });
   const navigate = useNavigate();
   const qc = useQueryClient();
+  const { user } = useAuth();
   const [varianteId, setVarianteId] = useState<string>("");
   const [cantidad, setCantidad] = useState(1);
-  const [puntaje, setPuntaje] = useState(5);
-  const [comentario, setComentario] = useState("");
 
   const prod = useQuery({ queryKey: ["producto", id], queryFn: () => api<Product>(`/productos/${id}`) });
   const variants = useQuery({
@@ -52,29 +53,24 @@ function ProductDetailPage() {
   });
 
   const addToCart = useMutation({
-    mutationFn: () =>
-      api("/carritos/items", {
+    mutationFn: () => {
+      if (!getToken()) {
+        navigate({ to: "/login" });
+        throw new Error("Inicia sesion para agregar productos al carrito.");
+      }
+      return api("/carritos/items", {
         method: "POST",
         body: { variante_id: Number(varianteId), cantidad },
-      }),
+      });
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["carrito"] });
       navigate({ to: "/carrito" });
     },
   });
 
-  const createReview = useMutation({
-    mutationFn: () =>
-      api(`/productos/${id}/resenas`, {
-        method: "POST",
-        body: { puntaje, comentario },
-      }),
-    onSuccess: () => {
-      setComentario("");
-      qc.invalidateQueries({ queryKey: ["resenas", id] });
-      qc.invalidateQueries({ queryKey: ["resenas-resumen", id] });
-    },
-  });
+  const currentClienteId = user?.cliente_id ?? user?.id;
+  const visibleReviews = reviews.data?.filter((r) => r.cliente_id !== currentClienteId) ?? [];
 
   return (
     <div className="space-y-6">
@@ -84,6 +80,15 @@ function ProductDetailPage() {
             <CardTitle className="text-2xl">{prod.data.nombre}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            {getProductImage(prod.data) && (
+              <div className="aspect-[4/3] overflow-hidden rounded-md bg-muted sm:aspect-[16/9]">
+                <img
+                  src={getProductImage(prod.data)!}
+                  alt={prod.data.nombre}
+                  className="h-full w-full object-contain p-6"
+                />
+              </div>
+            )}
             <p className="text-sm text-muted-foreground">{prod.data.descripcion}</p>
             <p className="text-2xl font-semibold">${prod.data.precio_base.toFixed(2)}</p>
             {summary.data && (
@@ -133,58 +138,18 @@ function ProductDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Dejar una reseña</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form
-            onSubmit={(e: FormEvent) => {
-              e.preventDefault();
-              createReview.mutate();
-            }}
-            className="space-y-3"
-          >
-            <div className="space-y-2">
-              <Label>Puntaje</Label>
-              <Select value={String(puntaje)} onValueChange={(v) => setPuntaje(Number(v))}>
-                <SelectTrigger className="w-32">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {[1, 2, 3, 4, 5].map((n) => (
-                    <SelectItem key={n} value={String(n)}>
-                      {n} ★
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Comentario</Label>
-              <Textarea value={comentario} onChange={(e) => setComentario(e.target.value)} />
-            </div>
-            <Button type="submit" disabled={createReview.isPending}>
-              {createReview.isPending ? "Enviando…" : "Enviar reseña"}
-            </Button>
-            {createReview.error && (
-              <p className="text-sm text-destructive">{(createReview.error as Error).message}</p>
-            )}
-          </form>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>Reseñas</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {reviews.data?.length === 0 && (
+          {visibleReviews.length === 0 && (
             <p className="text-sm text-muted-foreground">Aún no hay reseñas.</p>
           )}
-          {reviews.data?.map((r) => (
+          {visibleReviews.map((r) => (
             <div key={r.id} className="rounded-md border p-3">
               <div className="flex items-center gap-2 text-sm">
                 <Star className="size-4 fill-yellow-500 text-yellow-500" />
                 <strong>{r.puntaje}</strong>
+                <span>{r.cliente_nombre ?? "Cliente"}</span>
                 <span className="text-muted-foreground">· {new Date(r.fecha).toLocaleDateString()}</span>
               </div>
               {r.comentario && <p className="mt-2 text-sm">{r.comentario}</p>}

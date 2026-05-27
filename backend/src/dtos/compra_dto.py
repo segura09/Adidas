@@ -13,6 +13,7 @@ class CreatePurchaseDTO(BaseModel):
 
 
 class ItemCompraResponseDTO(BaseModel):
+    producto_id: Optional[int] = None
     variante_id: int
     cantidad: int
     precio_unitario: float

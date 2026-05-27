@@ -12,9 +12,7 @@ function Index() {
 
   useEffect(() => {
     if (!hydrated) return;
-    if (!isAuthenticated) {
-      navigate({ to: "/login" });
-    } else if (user?.isAdmin) {
+    if (isAuthenticated && user?.isAdmin) {
       navigate({ to: "/admin" });
     } else {
       navigate({ to: "/productos" });

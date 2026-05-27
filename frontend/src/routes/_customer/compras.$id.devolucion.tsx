@@ -14,10 +14,19 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { AuthGuard } from "@/components/auth-guard";
 
 export const Route = createFileRoute("/_customer/compras/$id/devolucion")({
-  component: ReturnPage,
+  component: ProtectedReturnPage,
 });
+
+function ProtectedReturnPage() {
+  return (
+    <AuthGuard>
+      <ReturnPage />
+    </AuthGuard>
+  );
+}
 
 function ReturnPage() {
   const { id } = useParams({ from: "/_customer/compras/$id/devolucion" });

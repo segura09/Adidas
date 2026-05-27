@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field
 class CreateProductSchema(BaseModel):
     nombre: str = Field(..., min_length=2)
     descripcion: str | None = Field(None)
+    image_url: str | None = Field(None)
     precio_base: float = Field(..., gt=0)
     categoria_id: int
     activo: bool = True
@@ -10,6 +11,7 @@ class CreateProductSchema(BaseModel):
 class UpdateProductSchema(BaseModel):
     nombre: str | None = Field(None, min_length=2)
     descripcion: str | None = Field(None)
+    image_url: str | None = Field(None)
     precio_base: float | None = Field(None, gt=0)
     categoria_id: int | None = Field(None)
     activo: bool | None = Field(None)
@@ -18,6 +20,7 @@ class GetProductSchema(BaseModel):
     id: int 
     nombre: str
     descripcion: str | None
+    image_url: str | None = None
     precio_base: float
     categoria_id: int
     activo: bool

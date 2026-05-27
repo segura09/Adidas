@@ -75,6 +75,14 @@ function LoginPage() {
             <Button type="submit" className="w-full" disabled={loading}>
               {loading ? "Ingresando…" : "Ingresar"}
             </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full"
+              onClick={() => navigate({ to: "/productos" })}
+            >
+              Navegar como invitado
+            </Button>
             <p className="text-center text-xs text-muted-foreground">
               ¿No tenés cuenta?{" "}
               <Link to="/register" className="underline">

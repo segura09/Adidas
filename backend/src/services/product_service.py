@@ -14,6 +14,7 @@ class ProductService:
         product = self.repo.create(
             nombre=dto.nombre,
             descripcion=dto.descripcion,
+            image_url=dto.image_url,
             precio_base=dto.precio_base,
             categoria_id=dto.categoria_id,
             activo=dto.activo,

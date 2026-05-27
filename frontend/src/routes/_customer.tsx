@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AuthGuard } from "@/components/auth-guard";
 import { AppShell } from "@/components/app-shell";
 
 export const Route = createFileRoute("/_customer")({
@@ -13,9 +12,5 @@ const items = [
 ];
 
 function CustomerLayout() {
-  return (
-    <AuthGuard>
-      <AppShell title="Tienda" items={items} />
-    </AuthGuard>
-  );
+  return <AppShell title="ADDIOS" items={items} />;
 }

@@ -1,4 +1,7 @@
-from fastapi import APIRouter, Depends, Query, status
+from pathlib import Path
+from uuid import uuid4
+
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.orm import Session
 
 from src.db.connection import get_db
@@ -11,6 +14,14 @@ from src.services.variante_service import VarianteService
 
 
 router = APIRouter(prefix="/productos", tags=["Productos"])
+
+UPLOADS_DIR = Path(__file__).resolve().parents[2] / "uploads" / "products"
+UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+ALLOWED_IMAGE_TYPES = {
+    "image/jpeg": ".jpg",
+    "image/png": ".png",
+    "image/webp": ".webp",
+}
 
 
 @router.get("/top")
@@ -32,6 +43,35 @@ def list_products(db: Session = Depends(get_db)):
 def create_product(payload: CreateProductSchema, db: Session = Depends(get_db)):
     dto = CreateProductDTO(**payload.model_dump())
     return ProductService(db).create(dto)
+
+
+@router.post("/{product_id}/imagen", response_model=ProductResponseDTO)
+async def upload_product_image(
+    product_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+):
+    extension = ALLOWED_IMAGE_TYPES.get(file.content_type or "")
+    if not extension:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La imagen debe ser JPG, PNG o WEBP.",
+        )
+
+    ProductService(db).get_by_id(product_id)
+    filename = f"product-{product_id}-{uuid4().hex}{extension}"
+    target = UPLOADS_DIR / filename
+
+    content = await file.read()
+    if len(content) > 5 * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La imagen no puede superar 5MB.",
+        )
+    target.write_bytes(content)
+
+    dto = UpdateProductDTO(image_url=f"/uploads/products/{filename}")
+    return ProductService(db).update(product_id, dto)
 
 
 @router.get("/buscar", response_model=list[ProductResponseDTO])

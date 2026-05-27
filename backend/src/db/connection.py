@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from src.config.env import settings
@@ -8,6 +8,9 @@ SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 Base = declarative_base()
 import src.db.models
 Base.metadata.create_all(bind=engine)
+
+with engine.begin() as conn:
+    conn.execute(text("ALTER TABLE productos ADD COLUMN IF NOT EXISTS image_url VARCHAR(500)"))
 
 
 def get_db():
